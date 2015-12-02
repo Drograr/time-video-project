@@ -234,7 +234,12 @@ _Pvt_Extensions
 .fake/
 
 # Video files generated for testing
+*.avi
+*.ogg
 *.mp4
 
 # This one I am not sure but it is not readable while VC is executing
 /TimedVideo.VC.opendb
+
+# For unixexecutable
+timedVideo

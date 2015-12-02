@@ -1,11 +1,19 @@
 // TimedVideo.cpp : définit le point d'entrée pour l'application console.
 //
 
-#include "stdafx.h"
+#ifdef __unix__
+#define WINDOWS 0
+#else //WINDOWS (mac not implemented yet)
 
+#define WINDOWS 1
+
+#include "stdafx.h"
+#include <Windows.h>
+
+#endif
 
 #include <gst/gst.h>
-#include <Windows.h>
+
 
 
 /* Functions below print the Capabilities in a human-friendly format */
@@ -66,7 +74,19 @@ static void print_pad_capabilities(GstElement *element, gchar *pad_name) {
 	gst_object_unref(pad);
 }
 
+#ifdef __unix__
+double linuxTime()
+{
+	long ms; // Milliseconds
+	time_t s;  // Seconds
+	struct timespec spec;
 
+	clock_gettime(CLOCK_REALTIME, &spec);
+	
+	return (double) spec.tv_sec + (spec.tv_nsec * 1.0e-9);
+}
+
+#else
 double win2LinuxTime(SYSTEMTIME st_time)
 {
 	FILETIME ft_time, ft_time1970;
@@ -86,9 +106,14 @@ double win2LinuxTime(SYSTEMTIME st_time)
 	ui_time1970.LowPart = ft_time1970.dwLowDateTime; ui_time1970.HighPart = ft_time1970.dwHighDateTime;
 	return (double)(ui_time.QuadPart - ui_time1970.QuadPart) / 1e7;
 }
+#endif
 
 static void newFrame_cb(GstPad *pad, GstPadProbeInfo *info, gpointer data)
 {
+#ifdef __unix__
+	double time = linuxTime();
+	g_print("FRAME,%f\n", time);
+#else
 	SYSTEMTIME currTime;
 	GetLocalTime(&currTime);
 
@@ -96,6 +121,7 @@ static void newFrame_cb(GstPad *pad, GstPadProbeInfo *info, gpointer data)
 	g_print("FRAME,%d:%d:%d.%d,%f\n",
 		currTime.wHour, currTime.wMinute, currTime.wSecond, currTime.wMilliseconds,
 		win2LinuxTime(currTime));
+#endif
 }
 
 GstElement* create_gst_element_err(const char* element, const char* name)
@@ -132,12 +158,18 @@ int main(int argc, char *argv[]) {
 	
 
 	/* Create the elements*/
-	video_src = create_gst_element_err("ksvideosrc", "video_src");
+	if(WINDOWS)
+		video_src = create_gst_element_err("ksvideosrc", "video_src");
+	else
+		video_src = create_gst_element_err("v4l2src","video_src");
 	//video_src = create_gst_element_err("videotestsrc", "video_src");
 	tee = create_gst_element_err("tee", "tee");
 	queue1 = create_gst_element_err("queue", "queue1");
 	queue2 = create_gst_element_err("queue", "queue2");
-	sound_src = create_gst_element_err("directsoundsrc", "sound_src");
+	if(WINDOWS)
+		sound_src = create_gst_element_err("directsoundsrc", "sound_src");
+	else
+		sound_src = create_gst_element_err("autoaudiosrc", "sound_src");
 	video_enc = create_gst_element_err("x264enc", "video_enc");
 	mux = create_gst_element_err("matroskamux", "mux");
 	file_sink = create_gst_element_err("filesink", "file_sink");
@@ -153,9 +185,9 @@ int main(int argc, char *argv[]) {
 	/* configure video encoder */
 	g_object_set(video_enc,
 		"interlaced", TRUE,
-		//"pass", "quant",
+		"pass", 4, //quant
 		"quantizer", 0,
-		//"speed-preset", "ultrafast",
+		"speed-preset", 1, //ultrafast
 		"byte-stream", TRUE,
 		NULL);
 
@@ -187,7 +219,7 @@ int main(int argc, char *argv[]) {
 	bus = gst_element_get_bus(rec_pipeline);
 	do {
 		msg = gst_bus_timed_pop_filtered(bus, /*GST_CLOCK_TIME_NONE*/ 60000*GST_MSECOND,
-			(GstMessageType) (GST_MESSAGE_STATE_CHANGED | GST_MESSAGE_ERROR | GST_MESSAGE_EOS | GST_MESSAGE_BUFFERING));
+			(GstMessageType) (GST_MESSAGE_STATE_CHANGED | GST_MESSAGE_ERROR | GST_MESSAGE_EOS));
 
 		/* Parse message */
 		if (msg != NULL) {
@@ -211,24 +243,19 @@ int main(int argc, char *argv[]) {
 				if (GST_MESSAGE_SRC(msg) == GST_OBJECT(rec_pipeline)) {
 					GstState new_state;
 					gst_message_parse_state_changed(msg, NULL, &new_state, NULL);
+#ifdef __unix__
+					double time = linuxTime();
+					g_print("%s,%f\n", gst_element_state_get_name(new_state), time);
+#else
 					SYSTEMTIME currTime;
 					GetLocalTime(&currTime);
-
 					//Get current time
 					g_print("%s,%d:%d:%d.%d,%f\n",
 						gst_element_state_get_name(new_state),
 						currTime.wHour, currTime.wMinute, currTime.wSecond, currTime.wMilliseconds,
 						win2LinuxTime(currTime));
+#endif
 				}
-				break;
-			case GST_MESSAGE_BUFFERING:
-				SYSTEMTIME currTime;
-				GetLocalTime(&currTime);
-
-				//Get current time
-				g_print("BUFFERING,%d:%d:%d.%d,%f\n",
-					currTime.wHour, currTime.wMinute, currTime.wSecond, currTime.wMilliseconds,
-					win2LinuxTime(currTime));
 				break;
 			default:
 				/* We should not reach here */
