@@ -98,8 +98,18 @@ static void newFrame_cb(GstPad *pad, GstPadProbeInfo *info, gpointer data)
 		win2LinuxTime(currTime));
 }
 
+GstElement* create_gst_element_err(const char* element, const char* name)
+{
+	GstElement *el;
+	el = gst_element_factory_make(element, name);
+	if(!el)
+		g_printerr("Element %s of type %s could not be created.\n", name, element);
+	return el;
+}
+
 int main(int argc, char *argv[]) {
-	GstElement *pipeline, *video_src, *sound_src, *video_enc, *video_conv, *mux, *file_sink, *video_sink;
+	GstElement *rec_pipeline;
+	GstElement *video_src, *tee, *queue1, *queue2, *sound_src, *video_enc, *video_conv, *mux, *file_sink, *video_sink;
 	GstBus *bus;
 	GstMessage *msg;
 	GstStateChangeReturn ret;
@@ -121,47 +131,60 @@ int main(int argc, char *argv[]) {
 	g_object_set(clock, "clock-type", GST_CLOCK_TYPE_REALTIME, NULL);
 	
 
-	/* Create the elements */
-	video_src = gst_element_factory_make("ksvideosrc", "video_src");
-	//video_src = gst_element_factory_make("videotestsrc", "video_src");
-	sound_src = gst_element_factory_make("directsoundsrc", "sound_src");
-	video_enc = gst_element_factory_make("x264enc", "video_enc");
-	mux = gst_element_factory_make("matroskamux", "mux");
-	file_sink = gst_element_factory_make("filesink", "file_sink");
-	g_object_set(file_sink, "location", argv[1], NULL);
-	video_sink = gst_element_factory_make("autovideosink", "video_sink");
+	/* Create the elements*/
+	video_src = create_gst_element_err("ksvideosrc", "video_src");
+	//video_src = create_gst_element_err("videotestsrc", "video_src");
+	tee = create_gst_element_err("tee", "tee");
+	queue1 = create_gst_element_err("queue", "queue1");
+	queue2 = create_gst_element_err("queue", "queue2");
+	sound_src = create_gst_element_err("directsoundsrc", "sound_src");
+	video_enc = create_gst_element_err("x264enc", "video_enc");
+	mux = create_gst_element_err("matroskamux", "mux");
+	file_sink = create_gst_element_err("filesink", "file_sink");
+	video_sink = create_gst_element_err("autovideosink", "video_sink");
 
-	/* Create the empty pipeline */
-	pipeline = gst_pipeline_new("test-pipeline");
-	if (!pipeline || !video_src || !sound_src || !video_enc || !mux || !file_sink || !video_sink) {
-		g_printerr("Not all elements could be created.\n");
+	/* Create the pipelines */
+	rec_pipeline = gst_pipeline_new("rec_pipeline");
+	if (!rec_pipeline || !queue1 || !queue2 || !tee || !video_src || !sound_src || !video_enc || !mux || !file_sink || !video_sink)
 		return -1;
-	}
+	
+	/* configure video source */
+	/* configure sound source */
+	/* configure video encoder */
+	g_object_set(video_enc,
+		"interlaced", TRUE,
+		//"pass", "quant",
+		"quantizer", 0,
+		//"speed-preset", "ultrafast",
+		"byte-stream", TRUE,
+		NULL);
+
+	/* configure output file */
+	g_object_set(file_sink, "location", argv[1], NULL);
 
 	/* set the call back on the source to know when frames are coming in */
 	GstPad *pad = gst_element_get_static_pad(video_src, "src");
 	gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback) newFrame_cb, NULL, NULL);
 	gst_object_unref(pad);
 
-	/* Build the pipeline.
-	*/
-	gst_bin_add_many(GST_BIN(pipeline), video_src, sound_src, video_enc, mux, file_sink, /*video_sink,*/ NULL);
-	if (!gst_element_link_many(video_src, video_enc, mux, file_sink, NULL) || !gst_element_link(sound_src, mux)) {
-		g_printerr("Elements could not be linked.\n");
-		gst_object_unref(pipeline);
+	/* Build the recording pipeline.	*/
+	gst_bin_add_many(GST_BIN(rec_pipeline), video_src, tee, queue1, queue2, sound_src, video_enc, mux, file_sink, video_sink, NULL);
+	if (!gst_element_link_many(video_src, tee, queue1, video_sink, NULL) || !gst_element_link_many(tee, queue2, video_enc, mux, file_sink, NULL) || !gst_element_link(sound_src, mux)) {
+		g_printerr("Elements could not be linked in rec pipeline.\n");
+		gst_object_unref(rec_pipeline);
 		return -1;
 	}
 
 	/* Start playing */
-	ret = gst_element_set_state(pipeline, GST_STATE_PLAYING);
+	ret = gst_element_set_state(rec_pipeline, GST_STATE_PLAYING);
 	if (ret == GST_STATE_CHANGE_FAILURE) {
-		g_printerr("Unable to set the pipeline to the playing state.\n");
-		gst_object_unref(pipeline);
+		g_printerr("Unable to set the rec_pipeline to the playing state.\n");
+		gst_object_unref(rec_pipeline);
 		return -1;
 	}
 
 	/* Listen to the bus */
-	bus = gst_element_get_bus(pipeline);
+	bus = gst_element_get_bus(rec_pipeline);
 	do {
 		msg = gst_bus_timed_pop_filtered(bus, /*GST_CLOCK_TIME_NONE*/ 60000*GST_MSECOND,
 			(GstMessageType) (GST_MESSAGE_STATE_CHANGED | GST_MESSAGE_ERROR | GST_MESSAGE_EOS | GST_MESSAGE_BUFFERING));
@@ -185,7 +208,7 @@ int main(int argc, char *argv[]) {
 				terminate = TRUE;
 				break;
 			case GST_MESSAGE_STATE_CHANGED:				
-				if (GST_MESSAGE_SRC(msg) == GST_OBJECT(pipeline)) {
+				if (GST_MESSAGE_SRC(msg) == GST_OBJECT(rec_pipeline)) {
 					GstState new_state;
 					gst_message_parse_state_changed(msg, NULL, &new_state, NULL);
 					SYSTEMTIME currTime;
@@ -217,7 +240,7 @@ int main(int argc, char *argv[]) {
 		else
 		{
 			GstState state;
-			gst_element_get_state(pipeline, &state, NULL, GST_CLOCK_TIME_NONE);
+			gst_element_get_state(rec_pipeline, &state, NULL, GST_CLOCK_TIME_NONE);
 			if (state == GST_STATE_PLAYING)
 				terminate = TRUE;
 			
@@ -226,7 +249,7 @@ int main(int argc, char *argv[]) {
 
 	/* Free resources */
 	gst_object_unref(bus);
-	gst_element_set_state(pipeline, GST_STATE_NULL);
-	gst_object_unref(pipeline);
+	gst_element_set_state(rec_pipeline, GST_STATE_NULL);
+	gst_object_unref(rec_pipeline);
 	return 0;
 }
