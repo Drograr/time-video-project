@@ -1,78 +1,15 @@
 // TimedVideo.cpp : définit le point d'entrée pour l'application console.
 //
 
-#ifdef __unix__
-#define WINDOWS 0
-#else //WINDOWS (mac not implemented yet)
-
-#define WINDOWS 1
-
 #include "stdafx.h"
 #include <Windows.h>
 
-#endif
-
 #include <gst/gst.h>
 
-
-
-/* Functions below print the Capabilities in a human-friendly format */
-static gboolean print_field(GQuark field, const GValue * value, gpointer pfx) {
-	gchar *str = gst_value_serialize(value);
-
-	g_print("%s  %15s: %s\n", (gchar *)pfx, g_quark_to_string(field), str);
-	g_free(str);
-	return TRUE;
-}
-
-static void print_caps(const GstCaps * caps, const gchar * pfx) {
-	guint i;
-
-	g_return_if_fail(caps != NULL);
-
-	if (gst_caps_is_any(caps)) {
-		g_print("%sANY\n", pfx);
-		return;
-	}
-	if (gst_caps_is_empty(caps)) {
-		g_print("%sEMPTY\n", pfx);
-		return;
-	}
-
-	for (i = 0; i < gst_caps_get_size(caps); i++) {
-		GstStructure *structure = gst_caps_get_structure(caps, i);
-
-		g_print("%s%s\n", pfx, gst_structure_get_name(structure));
-		gst_structure_foreach(structure, print_field, (gpointer)pfx);
-	}
-}
-
-/* Shows the CURRENT capabilities of the requested pad in the given element */
-static void print_pad_capabilities(GstElement *element, gchar *pad_name) {
-	GstPad *pad = NULL;
-	GstCaps *caps = NULL;
-
-	/* Retrieve pad */
-	pad = gst_element_get_static_pad(element, pad_name);
-	if (!pad) {
-		g_printerr("Could not retrieve pad '%s'\n", pad_name);
-		return;
-	}
-
-	/* Retrieve negotiated caps (or acceptable caps if negotiation is not finished yet) */
-	caps = gst_pad_get_current_caps(pad);
-	if (!caps)
-	{
-		g_printerr("No caps currently configured\n");
-		return;
-	}
-
-	/* Print and free */
-	g_print("Caps for the %s pad:\n", pad_name);
-	print_caps(caps, "      ");
-	gst_caps_unref(caps);
-	gst_object_unref(pad);
-}
+typedef struct _gst_elements {
+	GstElement *rec_pipeline;
+	GstElement *video_src, *tee, *queue, *sound_src, *video_enc, *sound_enc, *video_conv, *mux, *file_sink, *video_sink;
+} gst_elements;
 
 #ifdef __unix__
 double linuxTime()
@@ -124,6 +61,46 @@ static void newFrame_cb(GstPad *pad, GstPadProbeInfo *info, gpointer data)
 #endif
 }
 
+static void state_gst_cb(GstBus *bus, GstMessage *msg, gst_elements *elts)
+{
+	if (GST_MESSAGE_SRC(msg) == GST_OBJECT(elts->rec_pipeline)) {
+		GstState new_state;
+		gst_message_parse_state_changed(msg, NULL, &new_state, NULL);
+#ifdef __unix__
+		double time = linuxTime();
+		g_print("%s,%f\n", gst_element_state_get_name(new_state), time);
+#else
+		SYSTEMTIME currTime;
+		GetLocalTime(&currTime);
+		//Get current time
+		g_print("%s,%d:%d:%d.%d,%f\n",
+			gst_element_state_get_name(new_state),
+			currTime.wHour, currTime.wMinute, currTime.wSecond, currTime.wMilliseconds,
+			win2LinuxTime(currTime));
+#endif
+	}
+
+}
+
+
+static void error_gst_cb(GstBus *bus, GstMessage *msg, gst_elements *elts)
+{
+	GError *err;
+	gchar* debug_info;
+
+	gst_message_parse_error(msg, &err, &debug_info);
+	g_printerr("Error received from element %s: %s\n", GST_OBJECT_NAME(msg->src), err->message);
+	g_printerr("Debugging information: %s\n", debug_info ? debug_info : "none");
+	g_clear_error(&err);
+	g_free(debug_info);
+}
+
+static void eos_gst_cb(GstBus *bus, GstMessage *msg, GMainLoop *mainLoop)
+{
+	g_print("End-Of-Stream reached.\n");
+	g_main_loop_quit(mainLoop);
+}
+
 GstElement* create_gst_element_err(const char* element, const char* name)
 {
 	GstElement *el;
@@ -133,9 +110,25 @@ GstElement* create_gst_element_err(const char* element, const char* name)
 	return el;
 }
 
+static gst_elements *handlerParam;
+BOOL CtrlHandler(DWORD fdwCtrlType)
+{
+	switch (fdwCtrlType)
+	{
+		// Handle the CTRL-C signal + console closed (console close seems not to work)
+		case CTRL_C_EVENT:
+		case CTRL_CLOSE_EVENT:
+			gst_element_send_event(handlerParam->sound_src, gst_event_new_eos());
+			gst_element_send_event(handlerParam->video_src, gst_event_new_eos());
+			return(TRUE);
+
+		default:
+			return FALSE;
+	}
+}
+
 int main(int argc, char *argv[]) {
-	GstElement *rec_pipeline;
-	GstElement *video_src, *tee, *queue1, *queue2, *sound_src, *video_enc, *video_conv, *mux, *file_sink, *video_sink;
+	gst_elements gst_elmts;
 	GstBus *bus;
 	GstMessage *msg;
 	GstStateChangeReturn ret;
@@ -158,125 +151,96 @@ int main(int argc, char *argv[]) {
 	
 
 	/* Create the elements*/
-	if(WINDOWS)
-		video_src = create_gst_element_err("ksvideosrc", "video_src");
-	else
-		video_src = create_gst_element_err("v4l2src","video_src");
+	gst_elmts.video_src = create_gst_element_err("ksvideosrc", "video_src");
 	//video_src = create_gst_element_err("videotestsrc", "video_src");
-	tee = create_gst_element_err("tee", "tee");
-	queue1 = create_gst_element_err("queue", "queue1");
-	queue2 = create_gst_element_err("queue", "queue2");
-	if(WINDOWS)
-		sound_src = create_gst_element_err("directsoundsrc", "sound_src");
-	else
-		sound_src = create_gst_element_err("autoaudiosrc", "sound_src");
-	video_enc = create_gst_element_err("x264enc", "video_enc");
-	mux = create_gst_element_err("matroskamux", "mux");
-	file_sink = create_gst_element_err("filesink", "file_sink");
-	video_sink = create_gst_element_err("autovideosink", "video_sink");
+	gst_elmts.tee = create_gst_element_err("tee", "tee");
+	gst_elmts.queue = create_gst_element_err("queue", "queue");
+	gst_elmts.sound_src = create_gst_element_err("directsoundsrc", "sound_src");
+	gst_elmts.video_enc = create_gst_element_err("x264enc", "video_enc");
+	//gst_elmts.video_enc = create_gst_element_err("openh264enc", "video_enc");
+	gst_elmts.sound_enc = create_gst_element_err("flacenc", "sound_enc");
+	gst_elmts.mux = create_gst_element_err("matroskamux", "mux");
+	gst_elmts.file_sink = create_gst_element_err("filesink", "file_sink");
+	gst_elmts.video_sink = create_gst_element_err("autovideosink", "video_sink");
 
 	/* Create the pipelines */
-	rec_pipeline = gst_pipeline_new("rec_pipeline");
-	if (!rec_pipeline || !queue1 || !queue2 || !tee || !video_src || !sound_src || !video_enc || !mux || !file_sink || !video_sink)
+	gst_elmts.rec_pipeline = gst_pipeline_new("rec_pipeline");
+	if (!gst_elmts.rec_pipeline || !gst_elmts.queue || !gst_elmts.tee || !gst_elmts.video_src
+		|| !gst_elmts.sound_src || !gst_elmts.video_enc || !gst_elmts.sound_enc || !gst_elmts.mux
+		|| !gst_elmts.file_sink || !gst_elmts.video_sink)
 		return -1;
 	
 	/* configure video source */
 	/* configure sound source */
 	/* configure video encoder */
-	g_object_set(video_enc,
-		"interlaced", TRUE,
+	g_object_set(gst_elmts.video_enc,
+//		"interlaced", TRUE,
 		"pass", 4, //quant
-		"quantizer", 0,
-		"speed-preset", 1, //ultrafast
-		"byte-stream", TRUE,
+		"quantizer", 18,
+//		"pass", 0, //constant bitrate
+//		"bitrate", 1024,
+		"speed-preset", 2, //superfast
+//		"byte-stream", TRUE,
 		NULL);
 
+	/*g_object_set(gst_elmts.video_enc,
+		"complexity", 0,
+		"biterate", 768000,
+		NULL);*/
+
 	/* configure output file */
-	g_object_set(file_sink, "location", argv[1], NULL);
+	g_object_set(gst_elmts.file_sink, "location", argv[1], NULL);
 
 	/* set the call back on the source to know when frames are coming in */
-	GstPad *pad = gst_element_get_static_pad(video_src, "src");
+	GstPad *pad = gst_element_get_static_pad(gst_elmts.video_src, "src");
 	gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback) newFrame_cb, NULL, NULL);
 	gst_object_unref(pad);
 
 	/* Build the recording pipeline.	*/
-	gst_bin_add_many(GST_BIN(rec_pipeline), video_src, tee, queue1, queue2, sound_src, video_enc, mux, file_sink, video_sink, NULL);
-	if (!gst_element_link_many(video_src, tee, queue1, video_sink, NULL) || !gst_element_link_many(tee, queue2, video_enc, mux, file_sink, NULL) || !gst_element_link(sound_src, mux)) {
+	gst_bin_add_many(GST_BIN(gst_elmts.rec_pipeline), gst_elmts.video_src, gst_elmts.tee, gst_elmts.queue,
+		gst_elmts.sound_src, gst_elmts.video_enc, gst_elmts.mux, gst_elmts.file_sink, gst_elmts.video_sink,
+		gst_elmts.sound_enc, NULL);
+	if (!gst_element_link_many(gst_elmts.video_src, gst_elmts.tee, gst_elmts.queue, gst_elmts.video_sink, NULL)
+		|| !gst_element_link_many(gst_elmts.tee, gst_elmts.video_enc, gst_elmts.mux, gst_elmts.file_sink, NULL)
+		|| !gst_element_link_many(gst_elmts.sound_src, gst_elmts.sound_enc, gst_elmts.mux, NULL)) {
 		g_printerr("Elements could not be linked in rec pipeline.\n");
-		gst_object_unref(rec_pipeline);
+		gst_object_unref(gst_elmts.rec_pipeline);
 		return -1;
 	}
+
+	/* Setup a main loop */
+	GMainLoop *mainLoop = g_main_loop_new(NULL, FALSE);
+
+	/* Listen to the bus and setup appropriate call back for messages */
+	bus = gst_element_get_bus(gst_elmts.rec_pipeline);
+	gst_bus_add_signal_watch(bus);
+	g_signal_connect(G_OBJECT(bus), "message::error", (GCallback) error_gst_cb, mainLoop);
+	g_signal_connect(G_OBJECT(bus), "message::eos", (GCallback) eos_gst_cb, mainLoop);
+	g_signal_connect(G_OBJECT(bus), "message::state-changed", (GCallback)state_gst_cb, &gst_elmts);
+	gst_object_unref(bus);
+
+	/* Set handler for ctrl+c and console close */
+	handlerParam = &gst_elmts; //to give data to the handler
+	if(!SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlHandler, TRUE)) {
+		g_printerr("Unable to set windows closing handlers.\n");
+		gst_object_unref(gst_elmts.rec_pipeline);
+		return -1;
+	}
+
 
 	/* Start playing */
-	ret = gst_element_set_state(rec_pipeline, GST_STATE_PLAYING);
+	ret = gst_element_set_state(gst_elmts.rec_pipeline, GST_STATE_PLAYING);
 	if (ret == GST_STATE_CHANGE_FAILURE) {
 		g_printerr("Unable to set the rec_pipeline to the playing state.\n");
-		gst_object_unref(rec_pipeline);
+		gst_object_unref(gst_elmts.rec_pipeline);
 		return -1;
 	}
 
-	/* Listen to the bus */
-	bus = gst_element_get_bus(rec_pipeline);
-	do {
-		msg = gst_bus_timed_pop_filtered(bus, /*GST_CLOCK_TIME_NONE*/ 60000*GST_MSECOND,
-			(GstMessageType) (GST_MESSAGE_STATE_CHANGED | GST_MESSAGE_ERROR | GST_MESSAGE_EOS));
-
-		/* Parse message */
-		if (msg != NULL) {
-			GError *err;
-			gchar *debug_info;
-
-			switch (GST_MESSAGE_TYPE(msg)) {
-			case GST_MESSAGE_ERROR:
-				gst_message_parse_error(msg, &err, &debug_info);
-				g_printerr("Error received from element %s: %s\n", GST_OBJECT_NAME(msg->src), err->message);
-				g_printerr("Debugging information: %s\n", debug_info ? debug_info : "none");
-				g_clear_error(&err);
-				g_free(debug_info);
-				terminate = TRUE;
-				break;
-			case GST_MESSAGE_EOS:
-				g_print("End-Of-Stream reached.\n");
-				terminate = TRUE;
-				break;
-			case GST_MESSAGE_STATE_CHANGED:				
-				if (GST_MESSAGE_SRC(msg) == GST_OBJECT(rec_pipeline)) {
-					GstState new_state;
-					gst_message_parse_state_changed(msg, NULL, &new_state, NULL);
-#ifdef __unix__
-					double time = linuxTime();
-					g_print("%s,%f\n", gst_element_state_get_name(new_state), time);
-#else
-					SYSTEMTIME currTime;
-					GetLocalTime(&currTime);
-					//Get current time
-					g_print("%s,%d:%d:%d.%d,%f\n",
-						gst_element_state_get_name(new_state),
-						currTime.wHour, currTime.wMinute, currTime.wSecond, currTime.wMilliseconds,
-						win2LinuxTime(currTime));
-#endif
-				}
-				break;
-			default:
-				/* We should not reach here */
-				g_printerr("Unexpected message received.\n");
-				break;
-			}
-			gst_message_unref(msg);
-		}
-		else
-		{
-			GstState state;
-			gst_element_get_state(rec_pipeline, &state, NULL, GST_CLOCK_TIME_NONE);
-			if (state == GST_STATE_PLAYING)
-				terminate = TRUE;
-			
-		}
-	} while (!terminate);
+	//Enter loop up to an exit signal
+	g_main_loop_run(mainLoop);
 
 	/* Free resources */
-	gst_object_unref(bus);
-	gst_element_set_state(rec_pipeline, GST_STATE_NULL);
-	gst_object_unref(rec_pipeline);
+	gst_element_set_state(gst_elmts.rec_pipeline, GST_STATE_NULL);
+	gst_object_unref(gst_elmts.rec_pipeline);
 	return 0;
 }
