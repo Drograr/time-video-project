@@ -1,64 +1,22 @@
-// TimedVideo.cpp : définit le point d'entrée pour l'application console.
+// TimedVideo.cpp : définit le point d'entrée pour l'application console.
 //
-
-#include "stdafx.h"
-#include <Windows.h>
-
 #include <gst/gst.h>
+#include <QDate>
 
 typedef struct _gst_elements {
 	GstElement *rec_pipeline;
 	GstElement *video_src, *tee, *queue, *sound_src, *video_enc, *sound_enc, *video_conv, *mux, *file_sink, *video_sink;
 } gst_elements;
 
-#ifdef __unix__
-double linuxTime()
-{
-	long ms; // Milliseconds
-	time_t s;  // Seconds
-	struct timespec spec;
-
-	clock_gettime(CLOCK_REALTIME, &spec);
-	
-	return (double) spec.tv_sec + (spec.tv_nsec * 1.0e-9);
-}
-
-#else
-double win2LinuxTime(SYSTEMTIME st_time)
-{
-	FILETIME ft_time, ft_time1970;
-	ULARGE_INTEGER ui_time, ui_time1970;
-	SYSTEMTIME st_time1970;
-
-	SystemTimeToFileTime(&st_time, &ft_time);
-	ui_time.LowPart = ft_time.dwLowDateTime; ui_time.HighPart = ft_time.dwHighDateTime;
-	st_time1970.wYear = 1970;
-	st_time1970.wMonth = 1;
-	st_time1970.wDay = 1;
-	st_time1970.wHour = 0;
-	st_time1970.wMinute = 0;
-	st_time1970.wSecond = 0;
-	st_time1970.wMilliseconds = 0;
-	SystemTimeToFileTime(&st_time1970, &ft_time1970);
-	ui_time1970.LowPart = ft_time1970.dwLowDateTime; ui_time1970.HighPart = ft_time1970.dwHighDateTime;
-	return (double)(ui_time.QuadPart - ui_time1970.QuadPart) / 1e7;
-}
-#endif
-
 static void newFrame_cb(GstPad *pad, GstPadProbeInfo *info, gpointer data)
 {
-#ifdef __unix__
-	double time = linuxTime();
-	g_print("FRAME,%f\n", time);
-#else
-	SYSTEMTIME currTime;
-	GetLocalTime(&currTime);
-
 	//Get current time
-	g_print("FRAME,%d:%d:%d.%d,%f\n",
-		currTime.wHour, currTime.wMinute, currTime.wSecond, currTime.wMilliseconds,
-		win2LinuxTime(currTime));
-#endif
+    QDateTime localDate(QDateTime::currentDateTime());
+    QTime  localTime = localDate.time();
+
+    g_print("FRAME,%d:%d:%d.%d,%f\n",
+        localTime.hour(), localTime.minute(), localTime.second(), localTime.msec(),
+        localDate.toTime_t() + (localTime.msec() / 1e-3));
 }
 
 static void state_gst_cb(GstBus *bus, GstMessage *msg, gst_elements *elts)
@@ -66,22 +24,17 @@ static void state_gst_cb(GstBus *bus, GstMessage *msg, gst_elements *elts)
 	if (GST_MESSAGE_SRC(msg) == GST_OBJECT(elts->rec_pipeline)) {
 		GstState new_state;
 		gst_message_parse_state_changed(msg, NULL, &new_state, NULL);
-#ifdef __unix__
-		double time = linuxTime();
-		g_print("%s,%f\n", gst_element_state_get_name(new_state), time);
-#else
-		SYSTEMTIME currTime;
-		GetLocalTime(&currTime);
-		//Get current time
-		g_print("%s,%d:%d:%d.%d,%f\n",
-			gst_element_state_get_name(new_state),
-			currTime.wHour, currTime.wMinute, currTime.wSecond, currTime.wMilliseconds,
-			win2LinuxTime(currTime));
-#endif
+
+        //Get current time
+        QDateTime localDate(QDateTime::currentDateTime());
+        QTime  localTime = localDate.time();
+
+        g_print("%s,%d:%d:%d.%d,%f\n",
+            gst_element_state_get_name(new_state),
+            localTime.hour(), localTime.minute(), localTime.second(), localTime.msec(),
+            localDate.toTime_t() + (localTime.msec() / 1e-3));
 	}
-
 }
-
 
 static void error_gst_cb(GstBus *bus, GstMessage *msg, gst_elements *elts)
 {
@@ -110,24 +63,7 @@ GstElement* create_gst_element_err(const char* element, const char* name)
 	return el;
 }
 
-static gst_elements *handlerParam;
-BOOL CtrlHandler(DWORD fdwCtrlType)
-{
-	switch (fdwCtrlType)
-	{
-		// Handle the CTRL-C signal + console closed (console close seems not to work)
-		case CTRL_C_EVENT:
-		case CTRL_CLOSE_EVENT:
-			gst_element_send_event(handlerParam->sound_src, gst_event_new_eos());
-			gst_element_send_event(handlerParam->video_src, gst_event_new_eos());
-			return(TRUE);
-
-		default:
-			return FALSE;
-	}
-}
-
-int main(int argc, char *argv[]) {
+int main_TV(int argc, char *argv[]) {
 	gst_elements gst_elmts;
 	GstBus *bus;
 	GstMessage *msg;
@@ -151,11 +87,24 @@ int main(int argc, char *argv[]) {
 	
 
 	/* Create the elements*/
+#ifdef Q_OS_WIN32
 	gst_elmts.video_src = create_gst_element_err("ksvideosrc", "video_src");
-	//video_src = create_gst_element_err("videotestsrc", "video_src");
+#elif defined(Q_OS_LINUX)
+    gst_elmts.video_src = create_gst_element_err("v4l2src", "video_src");
+#else
+#error "Your platform is not supported"
+#endif
+    //video_src = create_gst_element_err("videotestsrc", "video_src");
 	gst_elmts.tee = create_gst_element_err("tee", "tee");
 	gst_elmts.queue = create_gst_element_err("queue", "queue");
-	gst_elmts.sound_src = create_gst_element_err("directsoundsrc", "sound_src");
+
+#ifdef Q_OS_WIN32
+    gst_elmts.sound_src = create_gst_element_err("directsoundsrc", "sound_src");
+#elif defined(Q_OS_LINUX)
+    gst_elmts.sound_src = create_gst_element_err("autoaudiosrc", "sound_src");
+#else
+#error "Your platform is not supported"
+#endif
 	gst_elmts.video_enc = create_gst_element_err("x264enc", "video_enc");
 	//gst_elmts.video_enc = create_gst_element_err("openh264enc", "video_enc");
 	gst_elmts.sound_enc = create_gst_element_err("flacenc", "sound_enc");
@@ -218,15 +167,6 @@ int main(int argc, char *argv[]) {
 	g_signal_connect(G_OBJECT(bus), "message::eos", (GCallback) eos_gst_cb, mainLoop);
 	g_signal_connect(G_OBJECT(bus), "message::state-changed", (GCallback)state_gst_cb, &gst_elmts);
 	gst_object_unref(bus);
-
-	/* Set handler for ctrl+c and console close */
-	handlerParam = &gst_elmts; //to give data to the handler
-	if(!SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlHandler, TRUE)) {
-		g_printerr("Unable to set windows closing handlers.\n");
-		gst_object_unref(gst_elmts.rec_pipeline);
-		return -1;
-	}
-
 
 	/* Start playing */
 	ret = gst_element_set_state(gst_elmts.rec_pipeline, GST_STATE_PLAYING);
