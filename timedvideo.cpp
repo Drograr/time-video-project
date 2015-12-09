@@ -1,4 +1,4 @@
-// TimedVideo.cpp : définit le point d'entrée pour l'application console.
+// TimedVideo.cpp : dÃ©finit le point d'entrÃ©e pour l'application console.
 //
 #include <gst/gst.h>
 #include <QDate>
