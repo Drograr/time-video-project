@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
     }
 
 
-    TVMainWindow w;
+    TVMainWindow w(NULL,  argv[1]);
     w.show();
 
     //main_TV(argc, argv);

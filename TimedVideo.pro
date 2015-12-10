@@ -14,7 +14,6 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         tvmainwindow.cpp \
-    timedvideo.cpp \
     tvgsrecorder.cpp
 
 HEADERS  += tvmainwindow.h \
@@ -23,4 +22,4 @@ HEADERS  += tvmainwindow.h \
 FORMS    += tvmainwindow.ui
 
 CONFIG += link_pkgconfig
-PKGCONFIG += gstreamer-1.0
+PKGCONFIG += gstreamer-video-1.0 #gstreamer-1.0

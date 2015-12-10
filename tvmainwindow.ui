@@ -16,18 +16,31 @@
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QPushButton" name="startButton">
-      <property name="text">
-       <string>Start recording</string>
-      </property>
-     </widget>
+     <widget class="QWidget" name="videoWidget" native="true"/>
     </item>
     <item>
-     <widget class="QPushButton" name="stopButton">
-      <property name="text">
-       <string>Stop recording</string>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <property name="sizeConstraint">
+       <enum>QLayout::SetDefaultConstraint</enum>
       </property>
-     </widget>
+      <item>
+       <widget class="QPushButton" name="startButton">
+        <property name="text">
+         <string>Start recording</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="stopButton">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>Stop recording</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>

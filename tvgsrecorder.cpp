@@ -1,7 +1,8 @@
 #include <QtGlobal>
 #include <QTime>
-#include <QEventLoop>
+#include <QWidget>
 #include "tvgsrecorder.h"
+#include <gst/video/videooverlay.h>
 
 TVGSRecorder::TVGSRecorder(gchar* _filename)
 {
@@ -63,7 +64,14 @@ bool TVGSRecorder::init_pipeline()
 
     file_sink = create_gst_element_err("filesink", "file_sink");
 
-    video_sink = create_gst_element_err("autovideosink", "video_sink");
+#ifdef Q_OS_WIN32
+    video_sink = create_gst_element_err("", "video_sink");
+#elif defined(Q_OS_LINUX)
+    video_sink = create_gst_element_err("xvimagesink", "video_sink");
+#else
+#error "Your platform is not supported"
+#endif
+
 
     /* Create the pipeline */
     rec_pipeline = gst_pipeline_new("rec_pipeline");
@@ -179,6 +187,7 @@ void TVGSRecorder::run(void)
     /* Free resources, TODO: Put somewhere else */
     gst_object_unref(bus);
     gst_element_set_state(rec_pipeline, GST_STATE_NULL);
+    currState = GST_STATE_NULL; //Not very good to do it manually...
 }
 
 void TVGSRecorder::stop(void)
@@ -187,9 +196,17 @@ void TVGSRecorder::stop(void)
     gst_element_send_event(video_src, gst_event_new_eos());
 }
 
-void TVGSRecorder::setDisplay()
+void TVGSRecorder::setDisplay(QWidget *widget)
 {
+    gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(video_sink), widget->winId());
+}
 
+bool TVGSRecorder::isPlaying()
+{
+    if(currState == GST_STATE_PLAYING)
+        return true;
+    else
+        return false;
 }
 
 GstElement* TVGSRecorder::create_gst_element_err(const char* element, const char* name)

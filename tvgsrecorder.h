@@ -11,6 +11,8 @@ public:
     ~TVGSRecorder();
     bool init_pipeline();
     void stop();
+    void setDisplay(QWidget *widget);
+    bool isPlaying();
 
 private:
     GstElement *rec_pipeline;

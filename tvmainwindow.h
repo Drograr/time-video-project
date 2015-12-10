@@ -13,17 +13,20 @@ class TVMainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit TVMainWindow(QWidget *parent = 0);
+    explicit TVMainWindow(QWidget *parent = 0, char *filename = 0);
     ~TVMainWindow();
 
 private slots:
     void on_startButton_clicked();
-
     void on_stopButton_clicked();
+    void cb_recorder_started();
+    void cb_recorder_finished();
 
 private:
     Ui::TVMainWindow *ui;
     TVGSRecorder *recorder;
+    char* filename;
+    void closeEvent (QCloseEvent *event);
 };
 
 #endif // TVMAINWINDOW_H
