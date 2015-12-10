@@ -14,9 +14,11 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         tvmainwindow.cpp \
-    timedvideo.cpp
+    timedvideo.cpp \
+    tvgsrecorder.cpp
 
-HEADERS  += tvmainwindow.h
+HEADERS  += tvmainwindow.h \
+    tvgsrecorder.h
 
 FORMS    += tvmainwindow.ui
 

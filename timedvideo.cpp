@@ -5,7 +5,7 @@
 
 typedef struct _gst_elements {
 	GstElement *rec_pipeline;
-	GstElement *video_src, *tee, *queue, *sound_src, *video_enc, *sound_enc, *video_conv, *mux, *file_sink, *video_sink;
+    GstElement *video_src, *tee, *queue, *sound_src, *video_enc, *sound_enc, *video_conv, *mux, *file_sink, *video_sink;
 } gst_elements;
 
 static void newFrame_cb(GstPad *pad, GstPadProbeInfo *info, gpointer data)
@@ -81,7 +81,7 @@ int main_TV(int argc, char *argv[]) {
 	}
 
 
-	//Initialize a system clock
+    //Initialize a system clock TODO: is it really needed ?
 	GstClock *clock = gst_system_clock_obtain();
 	g_object_set(clock, "clock-type", GST_CLOCK_TYPE_REALTIME, NULL);
 	
@@ -94,43 +94,52 @@ int main_TV(int argc, char *argv[]) {
 #else
 #error "Your platform is not supported"
 #endif
+
     //video_src = create_gst_element_err("videotestsrc", "video_src");
 	gst_elmts.tee = create_gst_element_err("tee", "tee");
-	gst_elmts.queue = create_gst_element_err("queue", "queue");
+
+    gst_elmts.queue = create_gst_element_err("queue", "queue");
 
 #ifdef Q_OS_WIN32
     gst_elmts.sound_src = create_gst_element_err("directsoundsrc", "sound_src");
 #elif defined(Q_OS_LINUX)
-    gst_elmts.sound_src = create_gst_element_err("autoaudiosrc", "sound_src");
+    gst_elmts.sound_src = create_gst_element_err("alsasrc", "sound_src");
 #else
 #error "Your platform is not supported"
 #endif
-	gst_elmts.video_enc = create_gst_element_err("x264enc", "video_enc");
-	//gst_elmts.video_enc = create_gst_element_err("openh264enc", "video_enc");
-	gst_elmts.sound_enc = create_gst_element_err("flacenc", "sound_enc");
-	gst_elmts.mux = create_gst_element_err("matroskamux", "mux");
-	gst_elmts.file_sink = create_gst_element_err("filesink", "file_sink");
-	gst_elmts.video_sink = create_gst_element_err("autovideosink", "video_sink");
+
+    //gst_elmts.video_enc = create_gst_element_err("mpeg2enc", "video_enc");
+    gst_elmts.video_enc = create_gst_element_err("x264enc", "video_enc");
+    //gst_elmts.video_enc = create_gst_element_err("openh264enc", "video_enc");
+
+    gst_elmts.sound_enc = create_gst_element_err("flacenc", "sound_enc");
+
+    gst_elmts.mux = create_gst_element_err("matroskamux", "mux");
+    //gst_elmts.mux = create_gst_element_err("avimux", "mux");
+
+    gst_elmts.file_sink = create_gst_element_err("filesink", "file_sink");
+
+    gst_elmts.video_sink = create_gst_element_err("autovideosink", "video_sink");
 
 	/* Create the pipelines */
 	gst_elmts.rec_pipeline = gst_pipeline_new("rec_pipeline");
 	if (!gst_elmts.rec_pipeline || !gst_elmts.queue || !gst_elmts.tee || !gst_elmts.video_src
 		|| !gst_elmts.sound_src || !gst_elmts.video_enc || !gst_elmts.sound_enc || !gst_elmts.mux
-		|| !gst_elmts.file_sink || !gst_elmts.video_sink)
+        || !gst_elmts.file_sink || !gst_elmts.video_sink)
 		return -1;
 	
-	/* configure video source */
+    /* configure video source */
 	/* configure sound source */
 	/* configure video encoder */
-	g_object_set(gst_elmts.video_enc,
+    g_object_set(gst_elmts.video_enc,
 //		"interlaced", TRUE,
-		"pass", 4, //quant
-		"quantizer", 18,
-//		"pass", 0, //constant bitrate
-//		"bitrate", 1024,
-		"speed-preset", 2, //superfast
+        "pass", 4, //quant
+        "quantizer", 25,
+//        "pass", 0, //constant bitrate
+//        "bitrate", 1024,
+        "speed-preset", 1, //superfast
 //		"byte-stream", TRUE,
-		NULL);
+        NULL);
 
 	/*g_object_set(gst_elmts.video_enc,
 		"complexity", 0,
@@ -138,20 +147,38 @@ int main_TV(int argc, char *argv[]) {
 		NULL);*/
 
 	/* configure output file */
-	g_object_set(gst_elmts.file_sink, "location", argv[1], NULL);
+    g_object_set(gst_elmts.file_sink, "location", argv[1], NULL);
 
 	/* set the call back on the source to know when frames are coming in */
 	GstPad *pad = gst_element_get_static_pad(gst_elmts.video_src, "src");
 	gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback) newFrame_cb, NULL, NULL);
 	gst_object_unref(pad);
 
-	/* Build the recording pipeline.	*/
+    /* Build the recording pipeline. */
 	gst_bin_add_many(GST_BIN(gst_elmts.rec_pipeline), gst_elmts.video_src, gst_elmts.tee, gst_elmts.queue,
 		gst_elmts.sound_src, gst_elmts.video_enc, gst_elmts.mux, gst_elmts.file_sink, gst_elmts.video_sink,
-		gst_elmts.sound_enc, NULL);
-	if (!gst_element_link_many(gst_elmts.video_src, gst_elmts.tee, gst_elmts.queue, gst_elmts.video_sink, NULL)
+        gst_elmts.sound_enc, NULL);
+
+
+    GstCaps *capsFilter = gst_caps_new_simple("video/x-raw",
+                                        "width", G_TYPE_INT, 640,
+                                        "height", G_TYPE_INT, 480,
+                                        "framerate", GST_TYPE_FRACTION, 30, 1,
+                                        NULL);
+
+
+    if(!gst_element_link_filtered(gst_elmts.video_src, gst_elmts.tee, capsFilter))
+    {
+        g_printerr("Filtered elements could not be linked in rec pipeline.\n");
+        gst_caps_unref(capsFilter);
+        gst_object_unref(gst_elmts.rec_pipeline);
+        return -1;
+    }
+    gst_caps_unref(capsFilter);
+
+    if(!gst_element_link_many(gst_elmts.tee, gst_elmts.queue, gst_elmts.video_sink, NULL)
 		|| !gst_element_link_many(gst_elmts.tee, gst_elmts.video_enc, gst_elmts.mux, gst_elmts.file_sink, NULL)
-		|| !gst_element_link_many(gst_elmts.sound_src, gst_elmts.sound_enc, gst_elmts.mux, NULL)) {
+        || !gst_element_link_many(gst_elmts.sound_src, gst_elmts.sound_enc, gst_elmts.mux, NULL)) {
 		g_printerr("Elements could not be linked in rec pipeline.\n");
 		gst_object_unref(gst_elmts.rec_pipeline);
 		return -1;
