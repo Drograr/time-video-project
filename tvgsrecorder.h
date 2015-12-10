@@ -2,13 +2,14 @@
 #define TVGSRECORDER_H
 
 #include <gst/gst.h>
+#include <QThread>
 
-class TVGSRecorder
+class TVGSRecorder : public QThread
 {
 public:
     TVGSRecorder(gchar* _filename);
+    ~TVGSRecorder();
     bool init_pipeline();
-    bool start();
     void stop();
 
 private:
@@ -17,6 +18,9 @@ private:
     GstBus *bus;
     gchar *filename;
     GMainLoop *mainLoop;
+    GstState currState;
+
+    void run();
 
     GstElement* create_gst_element_err(const char* element, const char* name);
     void state_gst(GstMessage *msg);

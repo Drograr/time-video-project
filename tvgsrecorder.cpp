@@ -1,5 +1,6 @@
 #include <QtGlobal>
 #include <QTime>
+#include <QEventLoop>
 #include "tvgsrecorder.h"
 
 TVGSRecorder::TVGSRecorder(gchar* _filename)
@@ -19,7 +20,14 @@ TVGSRecorder::TVGSRecorder(gchar* _filename)
     file_sink = NULL;
     video_sink = NULL;
     bus = NULL;
+    currState == GST_STATE_NULL;
 }
+
+TVGSRecorder::~TVGSRecorder()
+{
+     gst_object_unref(rec_pipeline);
+}
+
 
 bool TVGSRecorder::init_pipeline()
 {
@@ -60,7 +68,7 @@ bool TVGSRecorder::init_pipeline()
     /* Create the pipeline */
     rec_pipeline = gst_pipeline_new("rec_pipeline");
 
-    /* If any element failed to initilize return false */
+    /* If any element failed to initilizecurrState == GST_STATE_PLAYING return false */
     if (!rec_pipeline || !queue || !tee || !video_src || !sound_src || !video_enc
             || !sound_enc || !mux   || !file_sink || !video_sink)
         return false;
@@ -123,21 +131,26 @@ bool TVGSRecorder::init_pipeline()
 
 }
 
-bool TVGSRecorder::start(void)
+void TVGSRecorder::run(void)
 {
+
+    /* If the recorder is already in playing state do not start recording */
+    if(currState == GST_STATE_PLAYING)
+        return;
+
     /* Start playing */
     GstStateChangeReturn ret = gst_element_set_state(rec_pipeline, GST_STATE_PLAYING);
     if (ret == GST_STATE_CHANGE_FAILURE) {
         g_printerr("Unable to set the rec_pipeline to the playing state.\n");
         gst_object_unref(rec_pipeline);
-        return false;
+        return;
     }
 
     bus = gst_element_get_bus(rec_pipeline);
     GstMessage *msg;
     bool terminate;
     do {
-        msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE,
+        msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE /*100*GST_MSECOND*/,
             (GstMessageType) (GST_MESSAGE_STATE_CHANGED | GST_MESSAGE_ERROR | GST_MESSAGE_EOS | GST_MESSAGE_BUFFERING));
 
         /* Parse message */
@@ -166,16 +179,17 @@ bool TVGSRecorder::start(void)
     /* Free resources, TODO: Put somewhere else */
     gst_object_unref(bus);
     gst_element_set_state(rec_pipeline, GST_STATE_NULL);
-    gst_object_unref(rec_pipeline);
-
-    return true;
-
 }
 
 void TVGSRecorder::stop(void)
 {
     gst_element_send_event(sound_src, gst_event_new_eos());
     gst_element_send_event(video_src, gst_event_new_eos());
+}
+
+void TVGSRecorder::setDisplay()
+{
+
 }
 
 GstElement* TVGSRecorder::create_gst_element_err(const char* element, const char* name)
@@ -201,15 +215,14 @@ void TVGSRecorder::newFrame_cb(GstPad *pad, GstPadProbeInfo *info, gpointer unus
 void TVGSRecorder::state_gst(GstMessage *msg)
 {
     if (GST_MESSAGE_SRC(msg) == GST_OBJECT(rec_pipeline)) {
-        GstState new_state;
-        gst_message_parse_state_changed(msg, NULL, &new_state, NULL);
+        gst_message_parse_state_changed(msg, NULL, &currState, NULL);
 
         //Get current time
         QDateTime localDate(QDateTime::currentDateTime());
         QTime  localTime = localDate.time();
 
         g_print("%s,%d:%d:%d.%d,%f\n",
-            gst_element_state_get_name(new_state),
+            gst_element_state_get_name(currState),
             localTime.hour(), localTime.minute(), localTime.second(), localTime.msec(),
             localDate.toTime_t() + (localTime.msec() / 1e-3));
     }
