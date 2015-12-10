@@ -119,19 +119,6 @@ bool TVGSRecorder::init_pipeline()
         return false;
     }
 
-    /* Setup a main loop */
-    mainLoop = g_main_loop_new(NULL, FALSE);
-
-    /* Listen to the bus and setup appropriate call back for messages */
-    bus = gst_element_get_bus(rec_pipeline);
-    gst_bus_add_signal_watch(bus);
-    g_signal_connect(G_OBJECT(bus), "message::error", (GCallback) error_gst_cb, NULL);
-    g_signal_connect(G_OBJECT(bus), "message::eos", (GCallback) eos_gst_cb, NULL);
-    g_signal_connect(G_OBJECT(bus), "message::state-changed", (GCallback)state_gst_cb, NULL);
-    gst_object_unref(bus);
-
-
-
     return true;
 
 }
@@ -146,10 +133,38 @@ bool TVGSRecorder::start(void)
         return false;
     }
 
-    //Enter loop up to an exit signal
-    g_main_loop_run(mainLoop);
+    bus = gst_element_get_bus(rec_pipeline);
+    GstMessage *msg;
+    bool terminate;
+    do {
+        msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE,
+            (GstMessageType) (GST_MESSAGE_STATE_CHANGED | GST_MESSAGE_ERROR | GST_MESSAGE_EOS | GST_MESSAGE_BUFFERING));
+
+        /* Parse message */
+        if (msg != NULL) {
+            switch (GST_MESSAGE_TYPE(msg)) {
+            case GST_MESSAGE_ERROR:
+                error_gst(msg);
+                terminate = true;
+                break;
+            case GST_MESSAGE_EOS:
+                eos_gst();
+                terminate = true;
+                break;
+            case GST_MESSAGE_STATE_CHANGED:
+                state_gst(msg);
+                break;
+            default:
+                /* We should not reach here */
+                g_printerr("Unexpected message received.\n");
+                break;
+            }
+            gst_message_unref(msg);
+        }
+    } while (!terminate);
 
     /* Free resources, TODO: Put somewhere else */
+    gst_object_unref(bus);
     gst_element_set_state(rec_pipeline, GST_STATE_NULL);
     gst_object_unref(rec_pipeline);
 
@@ -183,7 +198,7 @@ void TVGSRecorder::newFrame_cb(GstPad *pad, GstPadProbeInfo *info, gpointer unus
         localDate.toTime_t() + (localTime.msec() / 1e-3));
 }
 
-void TVGSRecorder::state_gst_cb(GstBus *bus, GstMessage *msg, gpointer unused)
+void TVGSRecorder::state_gst(GstMessage *msg)
 {
     if (GST_MESSAGE_SRC(msg) == GST_OBJECT(rec_pipeline)) {
         GstState new_state;
@@ -200,7 +215,7 @@ void TVGSRecorder::state_gst_cb(GstBus *bus, GstMessage *msg, gpointer unused)
     }
 }
 
-void TVGSRecorder::error_gst_cb(GstBus *bus, GstMessage *msg, gpointer unused)
+void TVGSRecorder::error_gst(GstMessage *msg)
 {
     GError *err;
     gchar* debug_info;
@@ -212,8 +227,7 @@ void TVGSRecorder::error_gst_cb(GstBus *bus, GstMessage *msg, gpointer unused)
     g_free(debug_info);
 }
 
-void TVGSRecorder::eos_gst_cb(GstBus *bus, GstMessage *msg, gpointer unused)
+void TVGSRecorder::eos_gst()
 {
     g_print("End-Of-Stream reached.\n");
-    g_main_loop_quit(mainLoop);
 }
