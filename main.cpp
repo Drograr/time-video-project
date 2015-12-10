@@ -2,9 +2,6 @@
 #include <QApplication>
 #include <gst/gst.h>
 
-//TODO: BAAAAAD !
-//#include "timedvideo.cpp"
-
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);

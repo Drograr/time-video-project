@@ -3,6 +3,7 @@
 #include <QWidget>
 #include "tvgsrecorder.h"
 #include <gst/video/videooverlay.h>
+void* __gxx_personality_v0; //This is a very crapy hack because otherwise it complains
 
 TVGSRecorder::TVGSRecorder(gchar* _filename)
 {
@@ -65,7 +66,7 @@ bool TVGSRecorder::init_pipeline()
     file_sink = create_gst_element_err("filesink", "file_sink");
 
 #ifdef Q_OS_WIN32
-    video_sink = create_gst_element_err("", "video_sink");
+    video_sink = create_gst_element_err("d3dvideosink", "video_sink");
 #elif defined(Q_OS_LINUX)
     video_sink = create_gst_element_err("xvimagesink", "video_sink");
 #else
@@ -224,9 +225,9 @@ void TVGSRecorder::newFrame_cb(GstPad *pad, GstPadProbeInfo *info, gpointer unus
     QDateTime localDate(QDateTime::currentDateTime());
     QTime  localTime = localDate.time();
 
-    g_print("FRAME,%d:%d:%d.%d,%f\n",
+    g_print("FRAME,%d:%d:%d.%d,%.3f\n",
         localTime.hour(), localTime.minute(), localTime.second(), localTime.msec(),
-        localDate.toTime_t() + (localTime.msec() / 1e-3));
+        localDate.toTime_t() + (localTime.msec() * 1e-3));
 }
 
 void TVGSRecorder::state_gst(GstMessage *msg)
@@ -238,10 +239,10 @@ void TVGSRecorder::state_gst(GstMessage *msg)
         QDateTime localDate(QDateTime::currentDateTime());
         QTime  localTime = localDate.time();
 
-        g_print("%s,%d:%d:%d.%d,%f\n",
+        g_print("%s,%d:%d:%d.%d,%.3f\n",
             gst_element_state_get_name(currState),
             localTime.hour(), localTime.minute(), localTime.second(), localTime.msec(),
-            localDate.toTime_t() + (localTime.msec() / 1e-3));
+            localDate.toTime_t() + (localTime.msec() * 1e-3));
     }
 }
 
