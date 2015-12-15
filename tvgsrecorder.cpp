@@ -22,7 +22,7 @@ TVGSRecorder::TVGSRecorder(gchar* _filename)
     file_sink = NULL;
     video_sink = NULL;
     bus = NULL;
-    currState == GST_STATE_NULL;
+    currState = GST_STATE_NULL;
 }
 
 TVGSRecorder::~TVGSRecorder()
@@ -144,7 +144,7 @@ void TVGSRecorder::run(void)
 {
 
     /* If the recorder is already in playing state do not start recording */
-    if(currState == GST_STATE_PLAYING)
+    if(isPlaying())
         return;
 
     /* Start playing */
@@ -193,8 +193,11 @@ void TVGSRecorder::run(void)
 
 void TVGSRecorder::stop(void)
 {
-    gst_element_send_event(sound_src, gst_event_new_eos());
-    gst_element_send_event(video_src, gst_event_new_eos());
+    if(isPlaying())
+    {
+        gst_element_send_event(sound_src, gst_event_new_eos());
+        gst_element_send_event(video_src, gst_event_new_eos());
+    }
 }
 
 void TVGSRecorder::setDisplay(QWidget *widget)

@@ -20,6 +20,7 @@ HEADERS  += tvmainwindow.h \
     tvgsrecorder.h
 
 FORMS    += tvmainwindow.ui
+
 linux* {
     CONFIG += link_pkgconfig
     PKGCONFIG += gstreamer-video-1.0
@@ -32,4 +33,6 @@ win32 {
     INCLUDEPATH += C:/apps/gstreamer/1.0/x86/lib/glib-2.0/include
 
     LIBS += -LC:/apps/gstreamer/1.0/x86/lib -lgstvideo-1.0 -lgstbase-1.0 -lgstreamer-1.0 -lgobject-2.0 -lgmodule-2.0 -lgthread-2.0 -lglib-2.0
+
+    QMAKE_LFLAGS += /INCREMENTAL:NO
 }

@@ -52,8 +52,7 @@ void TVMainWindow::cb_recorder_finished()
 
 void TVMainWindow::closeEvent (QCloseEvent *event)
 {
-    if(recorder->isRunning())
-        recorder->stop();
+    recorder->stop();
     recorder->wait();
 }
 
