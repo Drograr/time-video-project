@@ -4,13 +4,13 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui # check if I can remove gui in Qt 5
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = TimedVideo
 TEMPLATE = app
-
+CONFIG  += console
 
 SOURCES += main.cpp\
         tvmainwindow.cpp \
