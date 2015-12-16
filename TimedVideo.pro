@@ -4,9 +4,9 @@
 #
 #-------------------------------------------------
 
-QT       += core gui # check if I can remove gui in Qt 5
-
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+# QT       += core gui # check if I can remove gui in Qt 5
+# greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+QT          += core widgets
 
 TARGET = TimedVideo
 TEMPLATE = app

@@ -21,6 +21,7 @@ private:
     gchar *filename;
     GMainLoop *mainLoop;
     GstState currState;
+    bool pipelineInitialized;
 
     void run();
 

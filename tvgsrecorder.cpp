@@ -23,16 +23,26 @@ TVGSRecorder::TVGSRecorder(gchar* _filename)
     video_sink = NULL;
     bus = NULL;
     currState = GST_STATE_NULL;
+    pipelineInitialized = false;
 }
 
 TVGSRecorder::~TVGSRecorder()
 {
-     gst_object_unref(rec_pipeline);
+    if(pipelineInitialized)
+    {
+        gst_object_unref(rec_pipeline);
+        pipelineInitialized = false;
+    }
 }
 
 
 bool TVGSRecorder::init_pipeline()
 {
+
+    //If the pipeline is already initialized than do not do it again
+    if(pipelineInitialized)
+        return true;
+
     /* Create the elements*/
 #ifdef Q_OS_WIN32
     video_src = create_gst_element_err("ksvideosrc", "video_src");
@@ -136,6 +146,8 @@ bool TVGSRecorder::init_pipeline()
         return false;
     }
 
+
+    pipelineInitialized = true;
     return true;
 
 }
@@ -152,6 +164,7 @@ void TVGSRecorder::run(void)
     if (ret == GST_STATE_CHANGE_FAILURE) {
         g_printerr("Unable to set the rec_pipeline to the playing state.\n");
         gst_object_unref(rec_pipeline);
+        pipelineInitialized = false;
         return;
     }
 
