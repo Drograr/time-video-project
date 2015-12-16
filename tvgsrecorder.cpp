@@ -28,20 +28,15 @@ TVGSRecorder::TVGSRecorder(gchar* _filename)
 
 TVGSRecorder::~TVGSRecorder()
 {
-    if(pipelineInitialized)
-    {
-        gst_object_unref(rec_pipeline);
-        pipelineInitialized = false;
-    }
+    destroy_pipeline();
 }
 
 
-bool TVGSRecorder::init_pipeline()
+bool TVGSRecorder::init_pipeline(char videoQuantizer, char videoSpeedPreset, char audioQuality)
 {
 
-    //If the pipeline is already initialized than do not do it again
-    if(pipelineInitialized)
-        return true;
+    //Destroy the previous pipeline
+    destroy_pipeline();
 
     /* Create the elements*/
 #ifdef Q_OS_WIN32
@@ -96,19 +91,13 @@ bool TVGSRecorder::init_pipeline()
     /* configure sound source */
     /* configure video encoder */
     g_object_set(video_enc,
-//		"interlaced", TRUE,
-        "pass", 4, //quant
-        "quantizer", 25,
-//        "pass", 0, //constant bitrate
-//        "bitrate", 1024,
-        "speed-preset", 1, //superfast
-//		"byte-stream", TRUE,
+        "pass", 4, //use quantizer
+        "quantizer", videoQuantizer,
+        "speed-preset",  videoSpeedPreset,
         NULL);
 
-    /*g_object_set(gst_elmts.video_enc,
-        "complexity", 0,
-        "biterate", 768000,
-        NULL);*/
+    /* Configure sound encoding */
+    g_object_set(sound_enc, "quality", audioQuality, NULL);
 
     /* configure output file */
     g_object_set(file_sink, "location", filename, NULL);
@@ -152,11 +141,24 @@ bool TVGSRecorder::init_pipeline()
 
 }
 
+void TVGSRecorder::destroy_pipeline()
+{
+
+    if(pipelineInitialized)
+    {
+        gst_object_unref(rec_pipeline);
+        pipelineInitialized = false;
+    }
+}
+
+
+
+
 void TVGSRecorder::run(void)
 {
 
     /* If the recorder is already in playing state do not start recording */
-    if(isPlaying())
+    if(isPlaying() || !pipelineInitialized)
         return;
 
     /* Start playing */

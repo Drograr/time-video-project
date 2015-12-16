@@ -16,11 +16,8 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-
     TVMainWindow w(NULL,  argv[1]);
     w.show();
-
-    //main_TV(argc, argv);
 
     return a.exec();
 }

@@ -23,7 +23,7 @@ TVMainWindow::~TVMainWindow()
 void TVMainWindow::on_startButton_clicked()
 {
     //Initialize the recording player if needed
-    if(recorder->init_pipeline() == false)
+    if(recorder->init_pipeline(ui->videoQuantizerSpinBox->value(), ui->videoSpeedSpinBox->value(), ui->audioQualitySpinBox->value()) == false)
         return;
 
     //Associate recorder video output the video widget (should be done each time, why ?)
