@@ -1,6 +1,5 @@
 #include "tvmainwindow.h"
 #include "ui_tvmainwindow.h"
-#include <QTimer>
 
 TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
     QMainWindow(parent),

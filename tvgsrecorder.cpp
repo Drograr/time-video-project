@@ -1,9 +1,9 @@
 #include <QtGlobal>
 #include <QTime>
 #include <QWidget>
-#include "tvgsrecorder.h"
 #include <gst/video/videooverlay.h>
-void* __gxx_personality_v0; //This is a very crapy hack because otherwise it complains
+
+#include "tvgsrecorder.h"
 
 TVGSRecorder::TVGSRecorder(gchar* _filename)
 {
@@ -170,9 +170,10 @@ void TVGSRecorder::run(void)
         return;
     }
 
+    /* Initialize and run the main event loop for gstreamer */
     bus = gst_element_get_bus(rec_pipeline);
     GstMessage *msg;
-    bool terminate;
+    bool terminate = false;
     do {
         msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE /*100*GST_MSECOND*/,
             (GstMessageType) (GST_MESSAGE_STATE_CHANGED | GST_MESSAGE_ERROR | GST_MESSAGE_EOS | GST_MESSAGE_BUFFERING));
@@ -200,7 +201,7 @@ void TVGSRecorder::run(void)
         }
     } while (!terminate);
 
-    /* Free resources, TODO: Put somewhere else */
+    /* Free resources */
     gst_object_unref(bus);
     gst_element_set_state(rec_pipeline, GST_STATE_NULL);
     currState = GST_STATE_NULL; //Not very good to do it manually...
