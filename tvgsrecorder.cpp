@@ -112,8 +112,8 @@ bool TVGSRecorder::init_pipeline(char videoQuantizer, char videoSpeedPreset, cha
                      file_sink, video_sink, sound_enc, NULL);
 
     GstCaps *capsFilter = gst_caps_new_simple("video/x-raw",
-                                        "width", G_TYPE_INT, 320,
-                                        "height", G_TYPE_INT, 240,
+                                        "width", G_TYPE_INT, 640,
+                                        "height", G_TYPE_INT, 480,
                                         "framerate", GST_TYPE_FRACTION, 30, 1,
                                         NULL);
 
