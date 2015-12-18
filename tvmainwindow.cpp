@@ -1,5 +1,6 @@
 #include "tvmainwindow.h"
 #include "ui_tvmainwindow.h"
+#include <QSettings>
 
 TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
     QMainWindow(parent),
@@ -11,10 +12,26 @@ TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
     //Connect handler to manage recorder started and finished events
     connect(recorder, SIGNAL(started()), this, SLOT(cb_recorder_started()));
     connect(recorder, SIGNAL(finished()), this, SLOT(cb_recorder_finished()));
+
+    //Load last user settings
+    QSettings settings(QApplication::applicationDirPath() + "/TimedVideo.ini", QSettings::IniFormat);
+    int videoQuantizerSpinBox= settings.value("video/quantizer",18).toInt();
+    int videoSpeedSpinBox = settings.value("video/speed", 1).toInt();
+    int audioQualitySpinBox = settings.value("audio/quality", 2).toInt();
+    ui->videoQuantizerSpinBox->setValue(videoQuantizerSpinBox);
+    ui->videoSpeedSpinBox->setValue(videoSpeedSpinBox);
+    ui->audioQualitySpinBox->setValue(audioQualitySpinBox);
 }
 
 TVMainWindow::~TVMainWindow()
 {
+    //Save User Settings
+    QSettings settings(QApplication::applicationDirPath() + "/TimedVideo.ini", QSettings::IniFormat);
+    settings.setValue("video/quantizer",ui->videoQuantizerSpinBox->value());
+    settings.setValue("video/speed",ui->videoSpeedSpinBox->value());
+    settings.setValue("audio/quality",ui->audioQualitySpinBox->value());
+
+    //Clean up the class member variables
     delete ui;
     delete recorder;
 }
