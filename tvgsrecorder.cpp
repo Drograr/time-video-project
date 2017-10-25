@@ -63,6 +63,8 @@ bool TVGSRecorder::init_pipeline(char videoQuantizer, char videoSpeedPreset, cha
     video_enc = create_gst_element_err("x264enc", "video_enc");
     //gst_elmts.video_enc = create_gst_element_err("openh264enc", "video_enc");
 
+    video_conv = create_gst_element_err("videoconvert", "video_conv");
+
     sound_enc = create_gst_element_err("flacenc", "sound_enc");
 
     mux = create_gst_element_err("matroskamux", "mux");
@@ -84,7 +86,7 @@ bool TVGSRecorder::init_pipeline(char videoQuantizer, char videoSpeedPreset, cha
 
     /* If any element failed to initilizecurrState == GST_STATE_PLAYING return false */
     if (!rec_pipeline || !queue || !tee || !video_src || !sound_src || !video_enc
-            || !sound_enc || !mux   || !file_sink || !video_sink)
+            || !video_conv || !sound_enc || !mux   || !file_sink || !video_sink)
         return false;
 
     /* configure video source */
@@ -109,7 +111,7 @@ bool TVGSRecorder::init_pipeline(char videoQuantizer, char videoSpeedPreset, cha
 
     /* Build the recording pipeline. */
     gst_bin_add_many(GST_BIN(rec_pipeline), video_src, tee, queue, sound_src, video_enc, mux,
-                     file_sink, video_sink, sound_enc, NULL);
+                     video_conv, file_sink, video_sink, sound_enc, NULL);
 
     GstCaps *capsFilter = gst_caps_new_simple("video/x-raw",
                                         "width", G_TYPE_INT, 640,
@@ -127,14 +129,13 @@ bool TVGSRecorder::init_pipeline(char videoQuantizer, char videoSpeedPreset, cha
     }
     gst_caps_unref(capsFilter);
 
-    if(!gst_element_link_many(tee, queue, video_sink, NULL) || !gst_element_link_many(tee, video_enc, mux, file_sink, NULL)
+    if(!gst_element_link_many(tee, queue, video_sink, NULL) || !gst_element_link_many(tee, video_conv, video_enc, mux, file_sink, NULL)
         || !gst_element_link_many(sound_src, sound_enc, mux, NULL))
     {
         g_printerr("Elements could not be linked in rec pipeline.\n");
         gst_object_unref(rec_pipeline);
         return false;
     }
-
 
     pipelineInitialized = true;
     return true;
