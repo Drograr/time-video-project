@@ -5,6 +5,19 @@
 
 #include "tvgsrecorder.h"
 
+//Define the GST elements which depends on the platform
+#ifdef Q_OS_WIN32
+    #define VIDEO_SRC "ksvideosrc"
+    #define SOUND_SRC "directsoundsrc"
+    #define VIDEO_SINK "d3dvideosink"
+#elif defined(Q_OS_LINUX)
+    #define VIDEO_SRC "v4l2src"
+    #define SOUND_SRC "alsasrc"
+    #define VIDEO_SINK "xvimagesink"
+#else
+    #error "Your platform is not supported"
+#endif
+
 TVGSRecorder::TVGSRecorder(gchar* _filename)
 {
     //TODO: Copy content instead of pointers ?
@@ -39,47 +52,26 @@ bool TVGSRecorder::init_pipeline(char videoQuantizer, char videoSpeedPreset, cha
     destroy_pipeline();
 
     /* Create the elements*/
-#ifdef Q_OS_WIN32
-    video_src = create_gst_element_err("ksvideosrc", "video_src");
-#elif defined(Q_OS_LINUX)
-    video_src = create_gst_element_err("v4l2src", "video_src");
-#else
-#error "Your platform is not supported"
-#endif
-    //video_src = create_gst_element_err("videotestsrc", "video_src");
+    // Video source
+    video_src = create_gst_element_err(VIDEO_SRC, "video_src");
+    // Tee to split video in two branches: recording and display
     tee = create_gst_element_err("tee", "tee");
-
+    // Queue to create new thread for video recording
     queue = create_gst_element_err("queue", "queue");
-
-#ifdef Q_OS_WIN32
-    sound_src = create_gst_element_err("directsoundsrc", "sound_src");
-#elif defined(Q_OS_LINUX)
-    sound_src = create_gst_element_err("alsasrc", "sound_src");
-#else
-#error "Your platform is not supported"
-#endif
-
-    //gst_elmts.video_enc = create_gst_element_err("mpeg2enc", "video_enc");
+    // Sound source
+    sound_src = create_gst_element_err(SOUND_SRC, "sound_src");
+    // Video encoder for h264 using x264 encoder
     video_enc = create_gst_element_err("x264enc", "video_enc");
-    //gst_elmts.video_enc = create_gst_element_err("openh264enc", "video_enc");
-
+    // Helps to improve video source compatibility with encoder
     video_conv = create_gst_element_err("videoconvert", "video_conv");
-
+    // Encode sound in FLAC lossless
     sound_enc = create_gst_element_err("flacenc", "sound_enc");
-
+    // Mux sound and video in matroska format
     mux = create_gst_element_err("matroskamux", "mux");
-    //gst_elmts.mux = create_gst_element_err("avimux", "mux");
-
+    // Record to file
     file_sink = create_gst_element_err("filesink", "file_sink");
-
-#ifdef Q_OS_WIN32
-    video_sink = create_gst_element_err("d3dvideosink", "video_sink");
-#elif defined(Q_OS_LINUX)
-    video_sink = create_gst_element_err("xvimagesink", "video_sink");
-#else
-#error "Your platform is not supported"
-#endif
-
+    // Display video for feedback
+    video_sink = create_gst_element_err(VIDEO_SINK, "video_sink");
 
     /* Create the pipeline */
     rec_pipeline = gst_pipeline_new("rec_pipeline");
@@ -89,8 +81,6 @@ bool TVGSRecorder::init_pipeline(char videoQuantizer, char videoSpeedPreset, cha
             || !video_conv || !sound_enc || !mux   || !file_sink || !video_sink)
         return false;
 
-    /* configure video source */
-    /* configure sound source */
     /* configure video encoder */
     g_object_set(video_enc,
         "pass", 4, //use quantizer
@@ -109,17 +99,16 @@ bool TVGSRecorder::init_pipeline(char videoQuantizer, char videoSpeedPreset, cha
     gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback) newFrame_cb, NULL, NULL);
     gst_object_unref(pad);
 
-    /* Build the recording pipeline. */
+    /* Create the bin and continue by building pipeline */
     gst_bin_add_many(GST_BIN(rec_pipeline), video_src, tee, queue, sound_src, video_enc, mux,
                      video_conv, file_sink, video_sink, sound_enc, NULL);
 
+    /* Link the video source with other components by filtering the resolution and framerate */
     GstCaps *capsFilter = gst_caps_new_simple("video/x-raw",
                                         "width", G_TYPE_INT, 640,
                                         "height", G_TYPE_INT, 480,
                                         "framerate", GST_TYPE_FRACTION, 30, 1,
                                         NULL);
-
-
     if(!gst_element_link_filtered(video_src, tee, capsFilter))
     {
         g_printerr("Filtered elements could not be linked in rec pipeline.\n");
@@ -129,6 +118,10 @@ bool TVGSRecorder::init_pipeline(char videoQuantizer, char videoSpeedPreset, cha
     }
     gst_caps_unref(capsFilter);
 
+    /* create two video branches and one sound branch :
+     * - one with the video encoding / recording
+     * - the other with the video display
+     * - the last for sound recording */
     if(!gst_element_link_many(tee, queue, video_sink, NULL) || !gst_element_link_many(tee, video_conv, video_enc, mux, file_sink, NULL)
         || !gst_element_link_many(sound_src, sound_enc, mux, NULL))
     {
