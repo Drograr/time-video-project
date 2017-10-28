@@ -1,6 +1,7 @@
 #include <QtGlobal>
 #include <QTime>
 #include <QWidget>
+#include <QSize>
 #include <gst/video/videooverlay.h>
 
 #include "tvgsrecorder.h"
@@ -45,7 +46,7 @@ TVGSRecorder::~TVGSRecorder()
 }
 
 
-bool TVGSRecorder::init_pipeline(char videoQuantizer, char videoSpeedPreset, char audioQuality)
+bool TVGSRecorder::init_pipeline(char videoFrameRate, QSize videoSize, char videoQuantizer, char videoSpeedPreset, char audioQuality)
 {
 
     //Destroy the previous pipeline
@@ -105,9 +106,9 @@ bool TVGSRecorder::init_pipeline(char videoQuantizer, char videoSpeedPreset, cha
 
     /* Link the video source with other components by filtering the resolution and framerate */
     GstCaps *capsFilter = gst_caps_new_simple("video/x-raw",
-                                        "width", G_TYPE_INT, 640,
-                                        "height", G_TYPE_INT, 480,
-                                        "framerate", GST_TYPE_FRACTION, 30, 1,
+                                        "width", G_TYPE_INT, videoSize.width(),
+                                        "height", G_TYPE_INT, videoSize.height(),
+                                        "framerate", GST_TYPE_FRACTION, videoFrameRate, 1,
                                         NULL);
     if(!gst_element_link_filtered(video_src, tee, capsFilter))
     {
