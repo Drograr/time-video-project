@@ -28,26 +28,29 @@ def main():
     logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser(description='Cut and merge two videos according to start / end times')
-    parser.add_argument('video_files', type=str, nargs=2, help='video files to merge together, sound will be merged from the two only the video of the first is kept')
-    parser.add_argument('time_files', type=str, nargs=2, help='time files correponding to video_files')
     parser.add_argument('start', type=float, help='start time of the merged video')
     parser.add_argument('stop', type=float, help='stop time of the merged video')
+    parser.add_argument('out_file', type=str, help='merged video filename')
+    parser.add_argument('-v', '--videos', type=str, nargs='+', help='video files to merge together, all sounds will be merged, only the video of the first is kept')
+    parser.add_argument('-t', '--times', type=str, nargs='+', help='time files which should match the order of video files')
     args = parser.parse_args()
 
+    N = len(args.videos)
+
     # Define tempory cutted files names
-    tmp_file = os.path.join(tempfile.gettempdir(), '{}.mkv')
+    cut_files = [os.path.join(tempfile.gettempdir(), '{}.mkv'.format(i)) for i in range(N)]
 
     # Now segment the videos
-    for i, v in enumerate(args.video_files):
-
-        cut_video(v, args.time_files[i], args.start, args.stop, tmp_file.format(i))
+    for i in range(N):
+        cut_video(args.videos[i], args.times[i], args.start, args.stop, cut_files[i])
 
     # Merge the videos
-    os.system('ffmpeg -y -i /tmp/1.mkv -i /tmp/2.mkv -map 0:0 -filter_complex "[0:1][1:1] amix" -c:v libx264 -preset ultrafast {}'.format(out_filename))
+    ffmpeg_inputs = ' '.join(['-i {}'.format(f) for f in cut_files])
+    os.system('ffmpeg -y ' + ffmpeg_inputs + ' -map 0:0 -filter_complex "[0:1][1:1] amix" -c:v libx264 -preset ultrafast {}'.format(args.out_file))
 
     # Clean tempdir
-    for i, v in enumerate(args.video_files):
-        os.remove(tmp_file.format(i))
+    for f in cut_files:
+        os.remove(f)
 
 
 if __name__ == '__main__':
