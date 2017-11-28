@@ -1,0 +1,4 @@
+# For linux
+gst-launch-1.0 -e matroskamux name="muxer" ! filesink location=test.mkv \
+v4l2src ! video/x-raw,width=640,height=480 ! tee name=t ! queue ! xvimagesink t. ! videoconvert ! x264enc tune=zerolatency ! muxer. \
+alsasrc ! flacenc quality=2 ! muxer.
