@@ -22,7 +22,7 @@ def cut_video(video_filename, time_filename, start_time, end_time, out_filename,
 
     logging.info("file: {} - startFrame: {} - nbFrames: {} - startTime: {} - endTime {}".format(video_filename, startFrame, nbFrames, startVideoTime, endVideoTime))
     if precise:
-        os.system('ffmpeg -y -i {input} -ss {start}  -to {stop} -acodec copy -vcodec libx264 -fflags +genpts {out}'.format(start=startVideoTime, stop=endVideoTime, out=out_filename, input=video_filename))
+        os.system('ffmpeg -y -i {input} -ss {start}  -to {stop} -acodec copy -vcodec libx264 -preset ultrafast -fflags +genpts {out}'.format(start=startVideoTime, stop=endVideoTime, out=out_filename, input=video_filename))
     else:
         os.system('ffmpeg -y -i {input} -ss {start}  -to {stop} -c copy -fflags +genpts {out}'.format(start=startVideoTime, stop=endVideoTime, out=out_filename, input=video_filename))
 
