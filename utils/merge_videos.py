@@ -1,13 +1,13 @@
-import pandas as pd
+from pandas import read_csv
 import numpy as np
 import os
 import logging
 import argparse
 import tempfile
 
-def cut_video(video_filename, time_filename, start_time, end_time, out_filename, precise=True):
+def cut_video(video_filename, time_filename, start_time, end_time, out_filename, precise=False):
     # Load time file and select frames events only
-    time = pd.read_csv(time_filename, header=None, names=['Event', 'Time','UnixTime'])
+    time = read_csv(time_filename, header=None, names=['Event', 'Time','UnixTime'])
     time = time[time['Event'] == 'FRAME']
 
     # Find first frame index (i.e. just before start_time) and number frames
@@ -45,7 +45,10 @@ def main():
 
     # Now segment the videos
     for i in range(N):
-        cut_video(args.videos[i], args.times[i], args.start, args.stop, cut_files[i], args.precise)
+        if i == 0:
+            cut_video(args.videos[i], args.times[i], args.start, args.stop, cut_files[i], args.precise)
+        else:
+            cut_video(args.videos[i], args.times[i], args.start, args.stop, cut_files[i])
 
     # Merge the videos
     ffmpeg_inputs = ' '.join(['-i {}'.format(f) for f in cut_files])
