@@ -45,7 +45,7 @@ def main():
 
     # Now segment the videos
     for i in range(N):
-        cut_video(args.videos[i], args.times[i], args.start, args.stop, cut_files[i], precise)
+        cut_video(args.videos[i], args.times[i], args.start, args.stop, cut_files[i], args.precise)
 
     # Merge the videos
     ffmpeg_inputs = ' '.join(['-i {}'.format(f) for f in cut_files])
