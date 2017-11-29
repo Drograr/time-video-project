@@ -5,7 +5,7 @@ import logging
 import argparse
 import tempfile
 
-def cut_video(video_filename, time_filename, start_time, end_time, out_filename):
+def cut_video(video_filename, time_filename, start_time, end_time, out_filename, precise=True):
     # Load time file and select frames events only
     time = pd.read_csv(time_filename, header=None, names=['Event', 'Time','UnixTime'])
     time = time[time['Event'] == 'FRAME']
@@ -21,8 +21,10 @@ def cut_video(video_filename, time_filename, start_time, end_time, out_filename)
     endVideoTime = time.iloc[startFrame + nbFrames]['UnixTime'] - time.iloc[0]['UnixTime']
 
     logging.info("file: {} - startFrame: {} - nbFrames: {} - startTime: {} - endTime {}".format(video_filename, startFrame, nbFrames, startVideoTime, endVideoTime))
-    os.system('ffmpeg -y -i {input} -ss {start}  -to {stop} -c copy -fflags +genpts {out}'.format(start=startVideoTime, stop=endVideoTime, out=out_filename, input=video_filename))
-
+    if precise:
+        os.system('ffmpeg -y -i {input} -ss {start}  -to {stop} -acodec copy -vcodec libx264 -fflags +genpts {out}'.format(start=startVideoTime, stop=endVideoTime, out=out_filename, input=video_filename))
+    else:
+        os.system('ffmpeg -y -i {input} -ss {start}  -to {stop} -c copy -fflags +genpts {out}'.format(start=startVideoTime, stop=endVideoTime, out=out_filename, input=video_filename))
 
 def main():
     logging.basicConfig(level=logging.INFO)
@@ -33,6 +35,7 @@ def main():
     parser.add_argument('out_file', type=str, help='merged video filename')
     parser.add_argument('-v', '--videos', type=str, nargs='+', help='video files to merge together, all sounds will be merged, only the video of the first is kept')
     parser.add_argument('-t', '--times', type=str, nargs='+', help='time files which should match the order of video files')
+    parser.add_argument('-p','--precise', action='store_true', help='activate precise mode by reenconding cuted videos to x264')
     args = parser.parse_args()
 
     N = len(args.videos)
@@ -42,7 +45,7 @@ def main():
 
     # Now segment the videos
     for i in range(N):
-        cut_video(args.videos[i], args.times[i], args.start, args.stop, cut_files[i])
+        cut_video(args.videos[i], args.times[i], args.start, args.stop, cut_files[i], precise)
 
     # Merge the videos
     ffmpeg_inputs = ' '.join(['-i {}'.format(f) for f in cut_files])
