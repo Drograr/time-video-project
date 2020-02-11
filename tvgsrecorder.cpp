@@ -233,7 +233,7 @@ GstElement* TVGSRecorder::create_gst_element_err(const char* element, const char
     return el;
 }
 
-void TVGSRecorder::newFrame_cb(GstPad *pad, GstPadProbeInfo *info, gpointer unused)
+GstPadProbeReturn TVGSRecorder::newFrame_cb(GstPad *pad, GstPadProbeInfo *info, gpointer unused)
 {
     //Get current time
     QDateTime localDate(QDateTime::currentDateTime());

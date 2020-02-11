@@ -31,7 +31,7 @@ private:
     void error_gst(GstMessage *msg);
     void eos_gst();
 
-    static void newFrame_cb(GstPad *pad, GstPadProbeInfo *info, gpointer unused);
+    static GstPadProbeReturn newFrame_cb(GstPad *pad, GstPadProbeInfo *info, gpointer unused);
 };
 
 #endif // TVGSRECORDER_H
