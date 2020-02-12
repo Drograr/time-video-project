@@ -242,6 +242,8 @@ GstPadProbeReturn TVGSRecorder::newFrame_cb(GstPad *pad, GstPadProbeInfo *info, 
     g_print("FRAME,%d:%d:%d.%d,%.3f\n",
         localTime.hour(), localTime.minute(), localTime.second(), localTime.msec(),
         localDate.toTime_t() + (localTime.msec() * 1e-3));
+
+    return GST_PAD_PROBE_OK;
 }
 
 void TVGSRecorder::state_gst(GstMessage *msg)
