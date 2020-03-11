@@ -46,7 +46,7 @@ TVGSRecorder::~TVGSRecorder()
 }
 
 
-bool TVGSRecorder::init_pipeline(char videoFrameRate, QSize videoSize, char videoQuantizer, char videoSpeedPreset, char audioQuality)
+bool TVGSRecorder::init_pipeline(QString videoFrameRate, QSize videoSize, char videoQuantizer, char videoSpeedPreset, char audioQuality)
 {
 
     //Destroy the previous pipeline

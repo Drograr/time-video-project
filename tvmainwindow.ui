@@ -30,28 +30,12 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_6">
          <item>
+          <widget class="QComboBox" name="videoComboBox"/>
+         </item>
+         <item>
           <widget class="QLabel" name="label_6">
            <property name="text">
             <string>Frame rate</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSpinBox" name="videoFrameRateSpinBox">
-           <property name="maximumSize">
-            <size>
-             <width>50</width>
-             <height>16777215</height>
-            </size>
-           </property>
-           <property name="minimum">
-            <number>5</number>
-           </property>
-           <property name="maximum">
-            <number>60</number>
-           </property>
-           <property name="value">
-            <number>30</number>
            </property>
           </widget>
          </item>
@@ -274,7 +258,7 @@
      <x>0</x>
      <y>0</y>
      <width>545</width>
-     <height>28</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>

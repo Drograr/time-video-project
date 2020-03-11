@@ -9,7 +9,7 @@ class TVGSRecorder : public QThread
 public:
     TVGSRecorder(gchar* _filename);
     ~TVGSRecorder();
-    bool init_pipeline(char videoFrameRate, QSize videoSize, char videoQuantizer, char videoSpeedPreset, char audioQuality);
+    bool init_pipeline(QString videoFrameRate, QSize videoSize, char videoQuantizer, char videoSpeedPreset, char audioQuality);
     void destroy_pipeline();
     void stop();
     void setDisplay(QWidget *widget);
