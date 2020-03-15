@@ -1,9 +1,0 @@
-[audio]
-quality=2
-
-[video]
-framerate=30
-height=480
-quantizer=18
-speed=1
-width=640
