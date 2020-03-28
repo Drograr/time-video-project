@@ -4,9 +4,22 @@
 #include <gst/gst.h>
 #include <QThread>
 
+typedef struct Resolutions{
+	char hauteur[5];
+	char largeur[5];
+	char framerate[6];
+	}Resolution;
+
+typedef struct Cameras{
+	char path[200];
+	Resolution options[2000];
+	char nom[200];
+	}Camera;
+
 class TVGSRecorder : public QThread
 {
 public:
+    Camera liste_cameras[50];
     TVGSRecorder(gchar* _filename);
     ~TVGSRecorder();
     bool init_pipeline(QString videoFrameRate, QSize videoSize, char videoQuantizer, char videoSpeedPreset, char audioQuality);
@@ -30,7 +43,7 @@ private:
     void state_gst(GstMessage *msg);
     void error_gst(GstMessage *msg);
     void eos_gst();
-
+    void camera_caps();
     static void newFrame_cb(GstPad *pad, GstPadProbeInfo *info, gpointer unused);
 };
 
