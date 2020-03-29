@@ -15,6 +15,8 @@ class TVMainWindow : public QMainWindow
 public:
     explicit TVMainWindow(QWidget *parent = 0, char *filename = 0);
     ~TVMainWindow();
+    Camera liste_cameras[50];
+    void camera_caps();
 
 private slots:
     void on_startButton_clicked();

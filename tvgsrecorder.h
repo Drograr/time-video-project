@@ -19,7 +19,7 @@ typedef struct Cameras{
 class TVGSRecorder : public QThread
 {
 public:
-    Camera liste_cameras[50];
+    
     TVGSRecorder(gchar* _filename);
     ~TVGSRecorder();
     bool init_pipeline(QString videoFrameRate, QSize videoSize, char videoQuantizer, char videoSpeedPreset, char audioQuality);
@@ -43,7 +43,7 @@ private:
     void state_gst(GstMessage *msg);
     void error_gst(GstMessage *msg);
     void eos_gst();
-    void camera_caps();
+    
     static void newFrame_cb(GstPad *pad, GstPadProbeInfo *info, gpointer unused);
 };
 
