@@ -41,7 +41,7 @@ TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
     ui->videoQuantizerSpinBox->setValue(videoQuantizerSpinBox);
     ui->videoSpeedSpinBox->setValue(videoSpeedSpinBox);
     ui->audioQualitySpinBox->setValue(audioQualitySpinBox);
-
+	camera_caps();
 }
 
 TVMainWindow::~TVMainWindow()
@@ -111,9 +111,9 @@ void TVMainWindow::camera_caps()
 	int flag_mode4 = 0;
 	char *context_parse;
 	char *context_caps;
-	int buff_compteur_path;
+	int buff_compteur_path = -1;
 	int compteur_resolution_buffeur;
-	char *token_precedent;
+	char *token_precedent = NULL;
 	
 	
 	
