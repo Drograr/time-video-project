@@ -149,20 +149,24 @@ void TVMainWindow::camera_caps()
 		compteur_fgets += 1;
 		token = strtok_r(string_container," ",&context_parse);
 		while (token != NULL){
-			printf("%i + %s\n",compteur_fgets,token);
+			
 			compteur_fgets += 1;
 			
 			
 			if (mode_parseur == 0)
-			//trouve le premier nom de device
-			{if (strcmp("	name",token) == 0)
+			//trouve le premier device
+			{if (strcmp("Device",token) == 0)
 				{   buff_compteur_fgets = compteur_fgets;
-					mode_parseur = 2;
+					mode_parseur = 1;
 					
 					}
 				}
-				
-			//on saute un mode_parseur à cause d'un reste d'un vieux code''
+			if (mode_parseur == 1){
+				//trouve le nom de Device
+				if (compteur_fgets == buff_compteur_fgets + 6){
+					mode_parseur = 2;
+					}
+				}
 			if (mode_parseur == 2){
 				//  stocke le nom du Device
 				strcpy(nom_device,token);
