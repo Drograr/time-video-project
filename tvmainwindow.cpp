@@ -99,12 +99,12 @@ void TVMainWindow::closeEvent (QCloseEvent *event)
 #ifdef Q_OS_LINUX
 void TVMainWindow::camera_caps()
 {
-	FILE *file_parsed = fopen("./test.txt","r");
+	
 	int compteur_fgets = 0,mode_parseur = 0,buff_compteur_fgets = 0;
 	int compteur_strtok_caps = 0;
 	char *token;
 	char *token_caps;
-	char string_container[1000];
+	char string_container[100000];
 	char nom_device[1000]; 
 	char type_device_video[1000];
 	char buff_caracteristique[1000];
@@ -142,14 +142,16 @@ void TVMainWindow::camera_caps()
 		}
 	
 	
+	FILE *file_parsed = fopen("./test.txt","r");
 	
 	
-	
-	while (fgets(string_container, 1000, file_parsed) != NULL){
+	while (fgets(string_container, 100000, file_parsed) != NULL){
+		
 		compteur_fgets += 1;
 		token = strtok_r(string_container," ",&context_parse);
 		while (token != NULL){
-			
+			printf("mode parseur = %i\n",mode_parseur);
+			printf("%s\n",token);
 			compteur_fgets += 1;
 			
 			
@@ -195,7 +197,9 @@ void TVMainWindow::camera_caps()
 					buff_compteur_fgets = compteur_fgets;
 					flag_mode4 = 1;
 					mode_parseur = 5 ;
+
 					compteur_device += 1;
+					liste_cameras[compteur_device].nbr_resolution = -1;
 					compteur_resolution = -1;
 					strcpy(tableau_nom[compteur_device],nom_device);
 					
@@ -227,9 +231,7 @@ void TVMainWindow::camera_caps()
 							if (strcmp(token_caps,"video/x-raw") != 0){
 								break;}
 							
-							else{
-								
-								}}
+							}
 						if (compteur_strtok_caps != 0){
 							memmove(token_caps, token_caps+1, strlen(token_caps));
 							}
@@ -282,6 +284,7 @@ void TVMainWindow::camera_caps()
 								liste_cameras[compteur_device].options[compteur_resolution].framerate[compteur_premier_framerate] = '\0';
 								
 							compteur_resolution++;
+							liste_cameras[compteur_device].nbr_resolution += 1;
 							}
 						if (compteur_strtok_caps > 5){
 							strcpy(liste_cameras[compteur_device].options[compteur_resolution].hauteur,liste_cameras[compteur_device].options[compteur_resolution_buffeur].hauteur);
@@ -322,6 +325,7 @@ void TVMainWindow::camera_caps()
 				strcpy(buff_caracteristique,token);
 				memmove(buff_caracteristique, buff_caracteristique+2, strlen(buff_caracteristique));
 				strcpy(liste_cameras[compteur_device].path,buff_caracteristique);
+				
 				mode_parseur = 0;
 				}
 			
@@ -330,6 +334,7 @@ void TVMainWindow::camera_caps()
 		
 		}
 	
+	nbr_cameras = compteur_device + 1;
 	int compteur_camera;
 	for(compteur_camera = 0; compteur_camera < compteur_device + 1; compteur_camera++){
 		strcpy(liste_cameras[compteur_camera].nom ,tableau_nom[compteur_camera]);}
@@ -337,12 +342,13 @@ void TVMainWindow::camera_caps()
 	//uncomment here to test things.
 	
 	int i,j;
-	
+	printf("Nombre camera: %i\n",nbr_cameras);
 	for (i = 0;i < compteur_device+1 ; i++){
 		
 		printf("i = %i\n",i);
 		printf("nom: %s\n",liste_cameras[i].nom);
 		printf("path :%s\n",liste_cameras[i].path);
+		printf("nbr_res:%i\n",liste_cameras[i].nbr_resolution); 
 		for (j = 0;j < 100; j++) {
 			printf("j = %i\n",j);
 			printf("hauteur: %s\n",liste_cameras[i].options[j].hauteur);

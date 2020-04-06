@@ -8,12 +8,14 @@ typedef struct Resolutions{
 	char hauteur[5];
 	char largeur[5];
 	char framerate[6];
+	
 	}Resolution;
 
 typedef struct Cameras{
 	char path[200];
 	Resolution options[2000];
 	char nom[200];
+	int nbr_resolution;
 	}Camera;
 
 class TVGSRecorder : public QThread

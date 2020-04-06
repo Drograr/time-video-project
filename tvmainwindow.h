@@ -16,6 +16,7 @@ public:
     explicit TVMainWindow(QWidget *parent = 0, char *filename = 0);
     ~TVMainWindow();
     Camera liste_cameras[50];
+    int nbr_cameras;
     void camera_caps();
 
 private slots:
