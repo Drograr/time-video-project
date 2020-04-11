@@ -36,9 +36,12 @@ public:
     QVBoxLayout *verticalLayout;
     QGroupBox *videoBox;
     QVBoxLayout *verticalLayout_2;
+    QHBoxLayout *horizontalLayout_7;
+    QLabel *label_7;
+    QComboBox *CameracomboBox;
     QHBoxLayout *horizontalLayout_6;
-    QComboBox *videoComboBox;
     QLabel *label_6;
+    QComboBox *videoComboBox;
     QHBoxLayout *horizontalLayout_5;
     QLabel *label_4;
     QSpinBox *videoResWidthSpinBox;
@@ -81,18 +84,34 @@ public:
         verticalLayout_2->setContentsMargins(11, 11, 11, 11);
         verticalLayout_2->setObjectName(QStringLiteral("verticalLayout_2"));
         verticalLayout_2->setSizeConstraint(QLayout::SetMinAndMaxSize);
+        horizontalLayout_7 = new QHBoxLayout();
+        horizontalLayout_7->setSpacing(6);
+        horizontalLayout_7->setObjectName(QStringLiteral("horizontalLayout_7"));
+        label_7 = new QLabel(videoBox);
+        label_7->setObjectName(QStringLiteral("label_7"));
+
+        horizontalLayout_7->addWidget(label_7);
+
+        CameracomboBox = new QComboBox(videoBox);
+        CameracomboBox->setObjectName(QStringLiteral("CameracomboBox"));
+
+        horizontalLayout_7->addWidget(CameracomboBox);
+
+
+        verticalLayout_2->addLayout(horizontalLayout_7);
+
         horizontalLayout_6 = new QHBoxLayout();
         horizontalLayout_6->setSpacing(6);
         horizontalLayout_6->setObjectName(QStringLiteral("horizontalLayout_6"));
-        videoComboBox = new QComboBox(videoBox);
-        videoComboBox->setObjectName(QStringLiteral("videoComboBox"));
-
-        horizontalLayout_6->addWidget(videoComboBox);
-
         label_6 = new QLabel(videoBox);
         label_6->setObjectName(QStringLiteral("label_6"));
 
         horizontalLayout_6->addWidget(label_6);
+
+        videoComboBox = new QComboBox(videoBox);
+        videoComboBox->setObjectName(QStringLiteral("videoComboBox"));
+
+        horizontalLayout_6->addWidget(videoComboBox);
 
 
         verticalLayout_2->addLayout(horizontalLayout_6);
@@ -245,6 +264,7 @@ public:
     {
         TVMainWindow->setWindowTitle(QApplication::translate("TVMainWindow", "TVMainWindow", Q_NULLPTR));
         videoBox->setTitle(QApplication::translate("TVMainWindow", "Video configuration (h264)", Q_NULLPTR));
+        label_7->setText(QApplication::translate("TVMainWindow", "Camera", Q_NULLPTR));
         label_6->setText(QApplication::translate("TVMainWindow", "Frame rate", Q_NULLPTR));
         label_4->setText(QApplication::translate("TVMainWindow", "Resolution (width \303\227 height)", Q_NULLPTR));
         label_5->setText(QApplication::translate("TVMainWindow", "x", Q_NULLPTR));

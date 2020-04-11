@@ -24,7 +24,7 @@ private slots:
     void on_stopButton_clicked();
     void cb_recorder_started();
     void cb_recorder_finished();
-
+    void UpdateCombo();
 private:
     Ui::TVMainWindow *ui;
     TVGSRecorder *recorder;

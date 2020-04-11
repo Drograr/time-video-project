@@ -28,16 +28,30 @@
         <enum>QLayout::SetMinAndMaxSize</enum>
        </property>
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_6">
+        <layout class="QHBoxLayout" name="horizontalLayout_7">
          <item>
-          <widget class="QComboBox" name="videoComboBox"/>
+          <widget class="QLabel" name="label_7">
+           <property name="text">
+            <string>Camera</string>
+           </property>
+          </widget>
          </item>
+         <item>
+          <widget class="QComboBox" name="CameracomboBox"/>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_6">
          <item>
           <widget class="QLabel" name="label_6">
            <property name="text">
             <string>Frame rate</string>
            </property>
           </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="videoComboBox"/>
          </item>
         </layout>
        </item>
