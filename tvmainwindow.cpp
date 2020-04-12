@@ -139,8 +139,11 @@ int v;
 	for (v = 0;v < liste_cameras[ui->CameracomboBox->currentIndex()].nbr_resolution ; v++){
 
 
-		QString fullresolution ( liste_cameras[ui->CameracomboBox->currentIndex()].options[v].hauteur);
+		QString fullresolution ( "hauteur :");
+		fullresolution.append( liste_cameras[ui->CameracomboBox->currentIndex()].options[v].hauteur);
+		fullresolution.append( ", largeur :");
 		fullresolution.append(liste_cameras[ui->CameracomboBox->currentIndex()].options[v].largeur);
+		fullresolution.append( ", framerate :");
 		fullresolution.append(liste_cameras[ui->CameracomboBox->currentIndex()].options[v].framerate);
 
 		 video << fullresolution;
