@@ -29,21 +29,32 @@ TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
   //add items into the combobox
 
 	camera_caps();
-	//	QStringList Camera;
-	//	int c;
+	QStringList Camera;
+	int c;
 
-	//	for (c = 0;c < 10 ; c++){
+		for (c = 0;c < nbr_cameras ; c++){
+
+	     Camera << liste_cameras[c].nom;
+
+			}
+
+			ui->CameracomboBox->addItems(Camera);
+
+			QStringList video;
+			int v;
+
+				for (v = 0;v < liste_cameras[0].nbr_resolution ; v++){
 
 
-	//QString tad ( liste_cameras[0].options[0].hauteur);
-	//tad.append(liste_cameras[0].options[0].largeur);
-	//tad.append(liste_cameras[0].options[0].framerate);
-	    //    Camera << liste_cameras[0].nom;
-		//		}
-	  //       ui->CameracomboBox->addItems(Camera);
+					QString fullresolution ( liste_cameras[0].options[v].hauteur);
+			    fullresolution.append(liste_cameras[0].options[v].largeur);
+					fullresolution.append(liste_cameras[0].options[v].framerate);
 
-		ui->CameracomboBox->addItem( QString("0") );
-		ui->CameracomboBox->addItem( QString("1") );
+			     video << fullresolution;
+					}
+	       ui->videoComboBox->addItems(video);
+
+
 
 
 
@@ -121,15 +132,20 @@ void TVMainWindow::closeEvent (QCloseEvent *event)
 #ifdef Q_OS_LINUX
 
 void TVMainWindow::UpdateCombo(){
-	if(ui->CameracomboBox->currentText() == "0"){
-	ui->videoComboBox->clear();
-	ui->videoComboBox->addItem(QString("0"));
-}
-else
-if(ui->CameracomboBox->currentText()== "1"){
 ui->videoComboBox->clear();
-ui->videoComboBox->addItem(QString("1"));
-}
+QStringList video;
+int v;
+
+	for (v = 0;v < liste_cameras[ui->CameracomboBox->currentIndex()].nbr_resolution ; v++){
+
+
+		QString fullresolution ( liste_cameras[ui->CameracomboBox->currentIndex()].options[v].hauteur);
+		fullresolution.append(liste_cameras[ui->CameracomboBox->currentIndex()].options[v].largeur);
+		fullresolution.append(liste_cameras[ui->CameracomboBox->currentIndex()].options[v].framerate);
+
+		 video << fullresolution;
+		}
+	 ui->videoComboBox->addItems(video);
 }
 
 void TVMainWindow::camera_caps()
