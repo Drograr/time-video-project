@@ -46,8 +46,13 @@ TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
 				for (v = 0;v < liste_cameras[0].nbr_resolution ; v++){
 
 
-					QString fullresolution ( liste_cameras[0].options[v].hauteur);
-			    fullresolution.append(liste_cameras[0].options[v].largeur);
+					
+
+					QString fullresolution ( "hauteur :");
+					fullresolution.append( liste_cameras[0].options[v].hauteur);
+					fullresolution.append( ", largeur :");
+					fullresolution.append(liste_cameras[0].options[v].largeur);
+					fullresolution.append( ", framerate :");
 					fullresolution.append(liste_cameras[0].options[v].framerate);
 
 			     video << fullresolution;
