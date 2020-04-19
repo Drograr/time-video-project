@@ -25,11 +25,14 @@ private slots:
     void cb_recorder_started();
     void cb_recorder_finished();
     void UpdateCombo();
+
 private:
     Ui::TVMainWindow *ui;
     TVGSRecorder *recorder;
     char* filename;
     void closeEvent (QCloseEvent *event);
+    
+	
 };
 
 #endif // TVMAINWINDOW_H

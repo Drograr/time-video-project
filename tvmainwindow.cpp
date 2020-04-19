@@ -2,6 +2,8 @@
 #include "ui_tvmainwindow.h"
 #include <QSettings>
 #include <QSize>
+#include <glib/gprintf.h>
+#include <gst/gst.h>
 #ifdef Q_OS_LINUX
 	#include <unistd.h>
 	#include <stdio.h>
@@ -18,7 +20,7 @@
 TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
     QMainWindow(parent),
     ui(new Ui::TVMainWindow)
-{
+{	
     ui->setupUi(this);
     recorder = new TVGSRecorder(filename);
 
@@ -29,6 +31,7 @@ TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
   //add items into the combobox
 
 	camera_caps();
+	sleep(1);
 	QStringList Camera;
 	int c;
 
@@ -134,7 +137,7 @@ void TVMainWindow::closeEvent (QCloseEvent *event)
     recorder->stop();
     recorder->wait();
 }
-#ifdef Q_OS_LINUX
+
 
 void TVMainWindow::UpdateCombo(){
 ui->videoComboBox->clear();
@@ -156,267 +159,82 @@ int v;
 	 ui->videoComboBox->addItems(video);
 }
 
+static gboolean my_bus_func(GstBus * bus, GstMessage * message, gpointer user_data)
+   {
+      GstDevice *device;
+      gchar *name;
+
+      switch (GST_MESSAGE_TYPE (message)) {
+        case GST_MESSAGE_DEVICE_ADDED:
+          gst_message_parse_device_added (message, &device);
+          name = gst_device_get_display_name (device);
+          g_print("Device added: %s\n", name);
+          g_free (name);
+          gst_object_unref (device);
+          break;
+        case GST_MESSAGE_DEVICE_REMOVED:
+          gst_message_parse_device_removed (message, &device);
+          name = gst_device_get_display_name (device);
+          g_print("Device removed: %s\n", name);
+          g_free (name);
+          gst_object_unref (device);
+          break;
+        default:
+          break;
+      }
+
+      return G_SOURCE_CONTINUE;
+   }
+
+   GstDeviceMonitor *setup_raw_video_source_device_monitor (void) {
+      GstDeviceMonitor *monitor;
+      GstBus *bus;
+      GstCaps *caps;
+
+      monitor = gst_device_monitor_new ();
+
+      bus = gst_device_monitor_get_bus (monitor);
+      gst_bus_add_watch (bus, my_bus_func, NULL);
+      gst_object_unref (bus);
+
+      caps = gst_caps_new_empty_simple ("video/x-raw");
+      gst_device_monitor_add_filter (monitor, "Video/Source", caps);
+      gst_caps_unref (caps);
+
+      gst_device_monitor_start (monitor);
+
+      return monitor;
+   }
+
 void TVMainWindow::camera_caps()
-{
+{	
+	unsigned int compteur_inspecteur1;
+	GstDeviceMonitor *monitor; 
+	nbr_cameras = 0;
 
-	int compteur_fgets = 0,mode_parseur = 0,buff_compteur_fgets = 0;
-	int compteur_strtok_caps = 0;
-	char *token;
-	char *token_caps;
-	char string_container[100000];
-	char nom_device[1000];
-	char type_device_video[1000];
-	char buff_caracteristique[1000];
-	int flag_mode4 = 0;
-	char *context_parse;
-	char *context_caps;
-	int buff_compteur_path = -1;
-	int compteur_resolution_buffeur;
-	char *token_precedent = NULL;
-
-
-
-	int compteur_premier_framerate = 0;
-	int compteur_resolution = -1;
-
-	int compteur_device = -1;
-	char tableau_nom[50][200];
-	char buffeur_filtre[200];
-	char *token_filtre;
-	char *token_filtre2;
-	char *context_filtre;
-
-
-	pid_t pid;
-	int msg_waitpid;
-
-	pid = fork();
-	if (pid == 0) {
-		int output_gst_device_monitor = open("./test.txt", O_TRUNC | O_WRONLY | O_CREAT, S_IWUSR|S_IWGRP| S_IRUSR | S_IRGRP );
-		dup2(output_gst_device_monitor, 1);
-		execvp("gst-device-monitor-1.0",NULL);
+	monitor = setup_raw_video_source_device_monitor();
+	GList *list_gstdevice = gst_device_monitor_get_devices(monitor);
+	guint taille_liste_device_uint = g_list_length(list_gstdevice);
+	
+	
+	while(list_gstdevice != NULL){
+		gchar *nom_camera_monitorer = gst_device_get_display_name((GstDevice*)list_gstdevice->data);
+		//printf("%s\n",(char *)nom_camera_monitorer);
+		strcpy(liste_cameras[nbr_cameras].nom,(char *)nom_camera_monitorer);
+		nbr_cameras ++;
+		GstStructure *test_property = gst_device_get_properties((GstDevice*)list_gstdevice->data);
+		gchar *test_property_char = gst_structure_to_string(test_property);
+		printf("%s\n",(char *)test_property_char);
+		
+		GstCaps *Caps_current = gst_device_get_caps((GstDevice*)list_gstdevice->data);
+		guint size_caps_current = gst_caps_get_size(Caps_current);
+		
+		for(compteur_inspecteur1 = 0; compteur_inspecteur1 < size_caps_current;compteur_inspecteur1 ++){
+			GstCaps *Bout_de_Caps = gst_caps_copy_nth(Caps_current,compteur_inspecteur1);
+			//g_printf("%s\n",gst_caps_to_string(Bout_de_Caps));
 		}
-	else{
-		waitpid(pid,&msg_waitpid,0);
-		}
-
-
-	FILE *file_parsed = fopen("./test.txt","r");
-
-
-	while (fgets(string_container, 100000, file_parsed) != NULL){
-
-		compteur_fgets += 1;
-		token = strtok_r(string_container," ",&context_parse);
-		while (token != NULL){
-			printf("mode parseur = %i\n",mode_parseur);
-			printf("%s\n",token);
-			compteur_fgets += 1;
-
-
-			if (mode_parseur == 0)
-			//trouve le premier device
-			{if (strcmp("Device",token) == 0)
-				{   buff_compteur_fgets = compteur_fgets;
-					mode_parseur = 1;
-
-					}
-				}
-			if (mode_parseur == 1){
-				//trouve le nom de Device
-				if (compteur_fgets == buff_compteur_fgets + 6){
-					mode_parseur = 2;
-					}
-				}
-			if (mode_parseur == 2){
-				//  stocke le nom du Device
-				strcpy(nom_device,token);
-
-
-				mode_parseur = 3;
-				}
-			if (mode_parseur == 3){
-				//trouve l'indiquateur du fait qu'on se trouve sur une camera ou bien
-				//de l'audio'
-				if (compteur_fgets == buff_compteur_fgets + 9){
-					mode_parseur = 4;
-					}
-				}
-
-			if (mode_parseur == 4){
-				//verifie qu'on soit bien sur une source vidéo et si c'est le cas on met son nom dans la liste
-
-				strcpy(type_device_video,token);
-
-				if(strcmp(": Video/Source\n",type_device_video) != 0){
-					buff_compteur_fgets = 0;
-					mode_parseur = 0;
-					}
-				else{
-					buff_compteur_fgets = compteur_fgets;
-					flag_mode4 = 1;
-					mode_parseur = 5 ;
-
-					compteur_device += 1;
-					liste_cameras[compteur_device].nbr_resolution = -1;
-					compteur_resolution = -1;
-					strcpy(tableau_nom[compteur_device],nom_device);
-
-					}
-				}
-			if (mode_parseur == 5){//trouve les resolution/framerate et les mets dans un format utilisable.
-				if (((buff_compteur_fgets - compteur_fgets) % 3) == 0){
-
-					strcpy(buff_caracteristique,token);
-
-
-					if(flag_mode4 ==1){
-						flag_mode4 = 0;}
-					else {
-
-					if (buff_caracteristique[1] == ':') {
-						memmove(buff_caracteristique, buff_caracteristique+3, strlen(buff_caracteristique));
-
-						}
-					else {
-						memmove(buff_caracteristique, buff_caracteristique+7, strlen(buff_caracteristique));
-
-						}
-
-					compteur_strtok_caps = 0;
-					token_caps = strtok_r(buff_caracteristique,",",&context_caps);
-					while(token_caps != NULL){
-						if (compteur_strtok_caps == 0){
-							if (strcmp(token_caps,"video/x-raw") != 0){
-								break;}
-
-							}
-						if (compteur_strtok_caps != 0){
-							memmove(token_caps, token_caps+1, strlen(token_caps));
-							}
-
-						if (compteur_strtok_caps == 2){
-							compteur_resolution_buffeur = compteur_resolution;
-							if (token_caps[14] >= '0' && token_caps[14] <= '9'){
-
-								liste_cameras[compteur_device].options[compteur_resolution].largeur[0] = token_caps[11];
-								liste_cameras[compteur_device].options[compteur_resolution].largeur[1] = token_caps[12];
-								liste_cameras[compteur_device].options[compteur_resolution].largeur[2] = token_caps[13];
-								liste_cameras[compteur_device].options[compteur_resolution].largeur[3] = token_caps[14];
-								liste_cameras[compteur_device].options[compteur_resolution].largeur[4] = '\0';
-								}
-							else{
-								liste_cameras[compteur_device].options[compteur_resolution].largeur[0] = token_caps[11];
-								liste_cameras[compteur_device].options[compteur_resolution].largeur[1] = token_caps[12];
-								liste_cameras[compteur_device].options[compteur_resolution].largeur[2] = token_caps[13];
-								liste_cameras[compteur_device].options[compteur_resolution].largeur[3] = '\0';
-								}
-							}
-						if (compteur_strtok_caps == 3){
-							if (token_caps[15] >= '0' && token_caps[15] <= '9'){
-								liste_cameras[compteur_device].options[compteur_resolution].hauteur[0] = token_caps[12];
-								liste_cameras[compteur_device].options[compteur_resolution].hauteur[1] = token_caps[13];
-								liste_cameras[compteur_device].options[compteur_resolution].hauteur[2] = token_caps[14];
-								liste_cameras[compteur_device].options[compteur_resolution].hauteur[3] = token_caps[15];
-								liste_cameras[compteur_device].options[compteur_resolution].hauteur[4] = '\0';
-								}
-							else{
-								liste_cameras[compteur_device].options[compteur_resolution].hauteur[0] = token_caps[12];
-								liste_cameras[compteur_device].options[compteur_resolution].hauteur[1] = token_caps[13];
-								liste_cameras[compteur_device].options[compteur_resolution].hauteur[2] = token_caps[14];
-								liste_cameras[compteur_device].options[compteur_resolution].hauteur[3] = '\0';
-								}
-							}
-
-						if (compteur_strtok_caps == 5){
-							compteur_premier_framerate = 0;
-							while (token_caps[20+compteur_premier_framerate] != '/'){
-								liste_cameras[compteur_device].options[compteur_resolution].framerate[compteur_premier_framerate] = token_caps[20+compteur_premier_framerate];
-
-								compteur_premier_framerate += 1;
-
-								}
-								liste_cameras[compteur_device].options[compteur_resolution].framerate[compteur_premier_framerate] = token_caps[20+compteur_premier_framerate];
-								compteur_premier_framerate += 1;
-								liste_cameras[compteur_device].options[compteur_resolution].framerate[compteur_premier_framerate] = token_caps[20+compteur_premier_framerate];
-								compteur_premier_framerate += 1;
-								liste_cameras[compteur_device].options[compteur_resolution].framerate[compteur_premier_framerate] = '\0';
-
-							compteur_resolution++;
-							liste_cameras[compteur_device].nbr_resolution += 1;
-							}
-						if (compteur_strtok_caps > 5){
-							strcpy(liste_cameras[compteur_device].options[compteur_resolution].hauteur,liste_cameras[compteur_device].options[compteur_resolution_buffeur].hauteur);
-							strcpy(liste_cameras[compteur_device].options[compteur_resolution].largeur,liste_cameras[compteur_device].options[compteur_resolution_buffeur].largeur);
-
-							strcpy(buffeur_filtre,token_caps);
-							token_filtre = strtok_r(buffeur_filtre,"}",&context_filtre);
-							token_filtre2 = strtok_r(NULL,"}",&context_filtre);
-							if (token_filtre2 != NULL) {
-								strcpy(liste_cameras[compteur_device].options[compteur_resolution].framerate,token_filtre);
-								}
-							else {
-								strcpy(liste_cameras[compteur_device].options[compteur_resolution].framerate,token_caps);
-								}
-							compteur_resolution++;
-
-							}
-						compteur_strtok_caps += 1;
-						token_caps = strtok_r(NULL,",",&context_caps);
-						}
-								}}
-				}
-			if ((mode_parseur == 5) && (token[4]) == 'p'){
-				//trouve la fin des resolutions
-				buff_compteur_path = compteur_fgets;
-				token_precedent = token;
-				mode_parseur = 6;
-				}
-			if ((mode_parseur == 6) && (token_precedent[2] == 'd') && (token_precedent[3] == 'e')&& (token_precedent[4] == 'v') && (token_precedent[5] == 'i') && (token_precedent[6] == 'c') && (token_precedent[7] == 'e') && (token_precedent[8] == '.') && (token_precedent[9] == 'p') && (token_precedent[10] == 'a') && (token_precedent[11] == 't') && (token_precedent[12] == 'h')){
-				//trouve l'endroit ou le path est marqué
-				buff_compteur_path = compteur_fgets;
-				mode_parseur = 7;
-				}
-
-			if ((buff_compteur_path + 1 == compteur_fgets) && (mode_parseur == 7)){
-				//recuprère le path
-				buff_compteur_path = -1;
-				strcpy(buff_caracteristique,token);
-				memmove(buff_caracteristique, buff_caracteristique+2, strlen(buff_caracteristique));
-				strcpy(liste_cameras[compteur_device].path,buff_caracteristique);
-
-				mode_parseur = 0;
-				}
-
-			token = strtok_r(NULL,"",&context_parse);
-			}
-
-		}
-
-	nbr_cameras = compteur_device + 1;
-	int compteur_camera;
-	for(compteur_camera = 0; compteur_camera < compteur_device + 1; compteur_camera++){
-		strcpy(liste_cameras[compteur_camera].nom ,tableau_nom[compteur_camera]);}
-
-	//uncomment here to test things.
-/*
-	int i,j;
-	printf("Nombre camera: %i\n",nbr_cameras);
-	for (i = 0;i < compteur_device+1 ; i++){
-
-		printf("i = %i\n",i);
-		printf("nom: %s\n",liste_cameras[i].nom);
-		printf("path :%s\n",liste_cameras[i].path);
-		printf("nbr_res:%i\n",liste_cameras[i].nbr_resolution);
-		for (j = 0;j < 100; j++) {
-			printf("j = %i\n",j);
-			printf("hauteur: %s\n",liste_cameras[i].options[j].hauteur);
-			printf("largeur: %s\n",liste_cameras[i].options[j].largeur);
-			printf("framerate: %s\n",liste_cameras[i].options[j].framerate);
-			}
+		list_gstdevice = list_gstdevice->next;
+		
 	}
-*/
-	fclose(file_parsed);
+}
 
-	}
-#endif
