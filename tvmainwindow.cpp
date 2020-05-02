@@ -4,24 +4,17 @@
 #include <QSize>
 #include <glib/gprintf.h>
 #include <gst/gst.h>
-#ifdef Q_OS_LINUX
-	#include <unistd.h>
-	#include <stdio.h>
-	#include <sys/types.h>
-	#include <sys/stat.h>
-	#include <fcntl.h>
-	#include <string.h>
-	#include <stdlib.h>
-	#include <sys/wait.h>
-#endif
+
 
 
 
 TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
     QMainWindow(parent),
     ui(new Ui::TVMainWindow)
-{	
+    
+{	camera_caps();
     ui->setupUi(this);
+    
     recorder = new TVGSRecorder(filename);
 
     //Connect handler to manage recorder started and finished events
@@ -30,8 +23,8 @@ TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
 
   //add items into the combobox
 
-	camera_caps();
-	sleep(1);
+	
+	
 	QStringList Camera;
 	int c;
 
@@ -208,33 +201,85 @@ static gboolean my_bus_func(GstBus * bus, GstMessage * message, gpointer user_da
 
 void TVMainWindow::camera_caps()
 {	
-	unsigned int compteur_inspecteur1;
+	unsigned int compteur_framerates,compteur_inspecteur1;
+	
+	int compteur_framerates2;
 	GstDeviceMonitor *monitor; 
 	nbr_cameras = 0;
+	
 
 	monitor = setup_raw_video_source_device_monitor();
 	GList *list_gstdevice = gst_device_monitor_get_devices(monitor);
-	guint taille_liste_device_uint = g_list_length(list_gstdevice);
+	nbr_cameras = 0;
+	
+	
+	
 	
 	
 	while(list_gstdevice != NULL){
 		gchar *nom_camera_monitorer = gst_device_get_display_name((GstDevice*)list_gstdevice->data);
-		//printf("%s\n",(char *)nom_camera_monitorer);
+		;
 		strcpy(liste_cameras[nbr_cameras].nom,(char *)nom_camera_monitorer);
-		nbr_cameras ++;
+		
 		GstStructure *test_property = gst_device_get_properties((GstDevice*)list_gstdevice->data);
 		gchar *test_property_char = gst_structure_to_string(test_property);
-		printf("%s\n",(char *)test_property_char);
 		
+		strcpy(liste_cameras[nbr_cameras].path,gst_structure_get_string(test_property,"device.path") );			
 		GstCaps *Caps_current = gst_device_get_caps((GstDevice*)list_gstdevice->data);
 		guint size_caps_current = gst_caps_get_size(Caps_current);
-		
+		compteur_framerates2 = 0;
 		for(compteur_inspecteur1 = 0; compteur_inspecteur1 < size_caps_current;compteur_inspecteur1 ++){
-			GstCaps *Bout_de_Caps = gst_caps_copy_nth(Caps_current,compteur_inspecteur1);
-			//g_printf("%s\n",gst_caps_to_string(Bout_de_Caps));
+			GstStructure *Bout_de_Caps = gst_caps_get_structure(Caps_current,compteur_inspecteur1);
+			GType type_bout_de_caps  = gst_structure_get_field_type(Bout_de_Caps,"framerate");
+			if(strcmp("GstValueList",g_type_name(type_bout_de_caps)) == 0){
+				guint taille_liste_framerate = gst_value_list_get_size(gst_structure_get_value(Bout_de_Caps,"framerate"));
+				for(compteur_framerates = 0;compteur_framerates < taille_liste_framerate;compteur_framerates++){
+					const GValue *GValue_framerate =gst_structure_get_value(Bout_de_Caps,"framerate");
+					int denominateur = gst_value_get_fraction_denominator(gst_value_list_get_value(GValue_framerate,compteur_framerates)); 
+					int numereteur = gst_value_get_fraction_numerator(gst_value_list_get_value(GValue_framerate,compteur_framerates));
+					sprintf(liste_cameras[nbr_cameras].options[compteur_framerates2].framerate,"%i/%i",numereteur,denominateur);
+					const GValue *GValue_largeur = gst_structure_get_value(Bout_de_Caps,"width");
+					sprintf(liste_cameras[nbr_cameras].options[compteur_framerates2].largeur,"%i",g_value_get_int(GValue_largeur));
+					const GValue *GValue_hauteur = gst_structure_get_value(Bout_de_Caps,"height");
+					sprintf(liste_cameras[nbr_cameras].options[compteur_framerates2].hauteur,"%i",g_value_get_int(GValue_hauteur));
+					compteur_framerates2++;
+					}
+				}
+			if(strcmp("GstFraction",g_type_name(type_bout_de_caps)) == 0){
+				const GValue *GValue_framerate =gst_structure_get_value(Bout_de_Caps,"framerate");
+				int denominateur = gst_value_get_fraction_denominator(GValue_framerate); 
+				int numereteur = gst_value_get_fraction_numerator(GValue_framerate);
+				sprintf(liste_cameras[nbr_cameras].options[compteur_framerates2].framerate,"%i/%i",numereteur,denominateur);
+				const GValue *GValue_largeur = gst_structure_get_value(Bout_de_Caps,"width");
+				sprintf(liste_cameras[nbr_cameras].options[compteur_framerates2].largeur,"%i",g_value_get_int(GValue_largeur));
+				const GValue *GValue_hauteur = gst_structure_get_value(Bout_de_Caps,"height");
+				sprintf(liste_cameras[nbr_cameras].options[compteur_framerates2].hauteur,"%i",g_value_get_int(GValue_hauteur));
+				compteur_framerates2++;
+				}
 		}
+		liste_cameras[nbr_cameras].nbr_resolution = compteur_framerates2;
 		list_gstdevice = list_gstdevice->next;
-		
+		nbr_cameras ++;
 	}
+		//uncomment here to test things.
+/*
+	int i,j;
+	printf("Nombre camera: %i\n",nbr_cameras);
+	for (i = 0;i < compteur_device+1 ; i++){
+
+		printf("i = %i\n",i);
+		printf("nom: %s\n",liste_cameras[i].nom);
+		printf("path :%s\n",liste_cameras[i].path);
+		printf("nbr_res:%i\n",liste_cameras[i].nbr_resolution);
+		for (j = 0;j < 100; j++) {
+			printf("j = %i\n",j);
+			printf("hauteur: %s\n",liste_cameras[i].options[j].hauteur);
+			printf("largeur: %s\n",liste_cameras[i].options[j].largeur);
+			printf("framerate: %s\n",liste_cameras[i].options[j].framerate);
+			}
+	}
+*/ 
+	
+	printf("\n%i\n",nbr_cameras);
 }
 

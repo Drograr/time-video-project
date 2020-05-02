@@ -15,7 +15,7 @@ typedef struct Cameras{
 	char path[200];
 	Resolution options[2000];
 	char nom[200];
-	int nbr_resolution;
+	unsigned int nbr_resolution;
 	}Camera;
 
 class TVGSRecorder : public QThread
