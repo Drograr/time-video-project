@@ -11,10 +11,10 @@
 TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
     QMainWindow(parent),
     ui(new Ui::TVMainWindow)
-    
+
 {	camera_caps();
     ui->setupUi(this);
-    
+
     recorder = new TVGSRecorder(filename);
 
     //Connect handler to manage recorder started and finished events
@@ -23,8 +23,8 @@ TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
 
   //add items into the combobox
 
-	
-	
+
+
 	QStringList Camera;
 	int c;
 
@@ -42,14 +42,15 @@ TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
 				for (v = 0;v < liste_cameras[0].nbr_resolution ; v++){
 
 
-					
 
-					QString fullresolution ( "hauteur :");
-					fullresolution.append( liste_cameras[0].options[v].hauteur);
-					fullresolution.append( ", largeur :");
-					fullresolution.append(liste_cameras[0].options[v].largeur);
+
+					QString fullresolution ( "largeur :");
+					fullresolution.append( liste_cameras[0].options[v].largeur);
+					fullresolution.append( ", hauteur :");
+					fullresolution.append(liste_cameras[0].options[v].hauteur);
 					fullresolution.append( ", framerate :");
 					fullresolution.append(liste_cameras[0].options[v].framerate);
+
 
 			     video << fullresolution;
 					}
@@ -69,9 +70,27 @@ TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
     int videoQuantizerSpinBox= settings.value("video/quantizer",18).toInt();
     int videoSpeedSpinBox = settings.value("video/speed", 1).toInt();
     int audioQualitySpinBox = settings.value("audio/quality", 2).toInt();
-    //ui->videoComboBox->setValue(settings.value("video/framerate", 30).toInt());
-    ui->videoResWidthSpinBox->setValue(settings.value("video/width", 640).toInt());
-    ui->videoResHeightSpinBox->setValue(settings.value("video/height", 480).toInt());
+    QString optionscombobox = settings.value("Options").toString();
+    QString cameracombo = settings.value("camera").toString();
+    int findcamera;
+    int findoptions;
+
+    findcamera = ui->CameracomboBox->findText(cameracombo);
+    findoptions = ui->videoComboBox->findText(optionscombobox);
+
+    if (findcamera == -1){
+
+    }else{
+    ui->CameracomboBox->setCurrentIndex(findcamera);
+    UpdateCombo();
+      if(findoptions == -1){
+
+      }else{
+        ui->videoComboBox->setCurrentIndex(findoptions);
+      }
+    }
+
+
     ui->videoQuantizerSpinBox->setValue(videoQuantizerSpinBox);
     ui->videoSpeedSpinBox->setValue(videoSpeedSpinBox);
     ui->audioQualitySpinBox->setValue(audioQualitySpinBox);
@@ -81,25 +100,29 @@ TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
 TVMainWindow::~TVMainWindow()
 {
     //Save User Settings
-    QSettings settings(QApplication::applicationDirPath() + "/TimedVideo.ini", QSettings::IniFormat);
-    settings.setValue("video/framerate",ui->videoComboBox->currentText());
-    settings.setValue("video/width",ui->videoResWidthSpinBox->value());
-    settings.setValue("video/height",ui->videoResHeightSpinBox->value());
-    settings.setValue("video/quantizer",ui->videoQuantizerSpinBox->value());
-    settings.setValue("video/speed",ui->videoSpeedSpinBox->value());
-    settings.setValue("audio/quality",ui->audioQualitySpinBox->value());
+QSettings settings(QApplication::applicationDirPath() + "/TimedVideo.ini", QSettings::IniFormat);
 
-    //Clean up the class member variables
-    delete ui;
-    delete recorder;
+      settings.setValue("camera",ui->CameracomboBox->currentText());
+      settings.setValue("Options",ui->videoComboBox->currentText());
+      settings.setValue("video/quantizer",ui->videoQuantizerSpinBox->value());
+      settings.setValue("video/speed",ui->videoSpeedSpinBox->value());
+      settings.setValue("audio/quality",ui->audioQualitySpinBox->value());
+
+
+//Clean up the class member variables
+      delete ui;
+      delete recorder;
+
+
+
 }
 
 void TVMainWindow::on_startButton_clicked()
 {
-    //Initialize the recording player if needed
-    QSize videoSize(ui->videoResWidthSpinBox->value(), ui->videoResHeightSpinBox->value());
-    if(recorder->init_pipeline(ui->videoComboBox->currentText(), videoSize, ui->videoQuantizerSpinBox->value(), ui->videoSpeedSpinBox->value(), ui->audioQualitySpinBox->value()) == false)
-        return;
+  //Initialize the recording player if needed
+ QSize videoSize(atoi(liste_cameras[ui->CameracomboBox->currentIndex()].options[ui->videoComboBox->currentIndex()].largeur),atoi(liste_cameras[ui->CameracomboBox->currentIndex()].options[ui->videoComboBox->currentIndex()].hauteur));
+ if(recorder->init_pipeline(liste_cameras[ui->CameracomboBox->currentIndex()].options[ui->videoComboBox->currentIndex()].framerate, videoSize, ui->videoQuantizerSpinBox->value(), ui->videoSpeedSpinBox->value(), ui->audioQualitySpinBox->value()) == false)
+     return;
 
     //Associate recorder video output the video widget (should be done each time, why ?)
     recorder->setDisplay(ui->videoWidget);
@@ -200,31 +223,31 @@ static gboolean my_bus_func(GstBus * bus, GstMessage * message, gpointer user_da
    }
 
 void TVMainWindow::camera_caps()
-{	
+{
 	unsigned int compteur_framerates,compteur_inspecteur1;
-	
+
 	int compteur_framerates2;
-	GstDeviceMonitor *monitor; 
+	GstDeviceMonitor *monitor;
 	nbr_cameras = 0;
-	
+
 
 	monitor = setup_raw_video_source_device_monitor();
 	GList *list_gstdevice = gst_device_monitor_get_devices(monitor);
 	nbr_cameras = 0;
-	
-	
-	
-	
-	
+
+
+
+
+
 	while(list_gstdevice != NULL){
 		gchar *nom_camera_monitorer = gst_device_get_display_name((GstDevice*)list_gstdevice->data);
 		;
 		strcpy(liste_cameras[nbr_cameras].nom,(char *)nom_camera_monitorer);
-		
+
 		GstStructure *test_property = gst_device_get_properties((GstDevice*)list_gstdevice->data);
 		gchar *test_property_char = gst_structure_to_string(test_property);
-		
-		strcpy(liste_cameras[nbr_cameras].path,gst_structure_get_string(test_property,"device.path") );			
+
+		strcpy(liste_cameras[nbr_cameras].path,gst_structure_get_string(test_property,"device.path") );
 		GstCaps *Caps_current = gst_device_get_caps((GstDevice*)list_gstdevice->data);
 		guint size_caps_current = gst_caps_get_size(Caps_current);
 		compteur_framerates2 = 0;
@@ -235,7 +258,7 @@ void TVMainWindow::camera_caps()
 				guint taille_liste_framerate = gst_value_list_get_size(gst_structure_get_value(Bout_de_Caps,"framerate"));
 				for(compteur_framerates = 0;compteur_framerates < taille_liste_framerate;compteur_framerates++){
 					const GValue *GValue_framerate =gst_structure_get_value(Bout_de_Caps,"framerate");
-					int denominateur = gst_value_get_fraction_denominator(gst_value_list_get_value(GValue_framerate,compteur_framerates)); 
+					int denominateur = gst_value_get_fraction_denominator(gst_value_list_get_value(GValue_framerate,compteur_framerates));
 					int numereteur = gst_value_get_fraction_numerator(gst_value_list_get_value(GValue_framerate,compteur_framerates));
 					sprintf(liste_cameras[nbr_cameras].options[compteur_framerates2].framerate,"%i/%i",numereteur,denominateur);
 					const GValue *GValue_largeur = gst_structure_get_value(Bout_de_Caps,"width");
@@ -247,7 +270,7 @@ void TVMainWindow::camera_caps()
 				}
 			if(strcmp("GstFraction",g_type_name(type_bout_de_caps)) == 0){
 				const GValue *GValue_framerate =gst_structure_get_value(Bout_de_Caps,"framerate");
-				int denominateur = gst_value_get_fraction_denominator(GValue_framerate); 
+				int denominateur = gst_value_get_fraction_denominator(GValue_framerate);
 				int numereteur = gst_value_get_fraction_numerator(GValue_framerate);
 				sprintf(liste_cameras[nbr_cameras].options[compteur_framerates2].framerate,"%i/%i",numereteur,denominateur);
 				const GValue *GValue_largeur = gst_structure_get_value(Bout_de_Caps,"width");
@@ -278,8 +301,7 @@ void TVMainWindow::camera_caps()
 			printf("framerate: %s\n",liste_cameras[i].options[j].framerate);
 			}
 	}
-*/ 
-	
+*/
+
 	printf("\n%i\n",nbr_cameras);
 }
-

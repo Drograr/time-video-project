@@ -42,11 +42,6 @@ public:
     QHBoxLayout *horizontalLayout_6;
     QLabel *label_6;
     QComboBox *videoComboBox;
-    QHBoxLayout *horizontalLayout_5;
-    QLabel *label_4;
-    QSpinBox *videoResWidthSpinBox;
-    QLabel *label_5;
-    QSpinBox *videoResHeightSpinBox;
     QHBoxLayout *horizontalLayout_2;
     QLabel *label;
     QSpinBox *videoQuantizerSpinBox;
@@ -115,41 +110,6 @@ public:
 
 
         verticalLayout_2->addLayout(horizontalLayout_6);
-
-        horizontalLayout_5 = new QHBoxLayout();
-        horizontalLayout_5->setSpacing(6);
-        horizontalLayout_5->setObjectName(QStringLiteral("horizontalLayout_5"));
-        label_4 = new QLabel(videoBox);
-        label_4->setObjectName(QStringLiteral("label_4"));
-
-        horizontalLayout_5->addWidget(label_4);
-
-        videoResWidthSpinBox = new QSpinBox(videoBox);
-        videoResWidthSpinBox->setObjectName(QStringLiteral("videoResWidthSpinBox"));
-        videoResWidthSpinBox->setMaximumSize(QSize(100, 16777215));
-        videoResWidthSpinBox->setMaximum(4096);
-        videoResWidthSpinBox->setSingleStep(10);
-        videoResWidthSpinBox->setValue(640);
-
-        horizontalLayout_5->addWidget(videoResWidthSpinBox);
-
-        label_5 = new QLabel(videoBox);
-        label_5->setObjectName(QStringLiteral("label_5"));
-        label_5->setMaximumSize(QSize(10, 16777215));
-
-        horizontalLayout_5->addWidget(label_5);
-
-        videoResHeightSpinBox = new QSpinBox(videoBox);
-        videoResHeightSpinBox->setObjectName(QStringLiteral("videoResHeightSpinBox"));
-        videoResHeightSpinBox->setMaximumSize(QSize(100, 16777215));
-        videoResHeightSpinBox->setMaximum(2160);
-        videoResHeightSpinBox->setSingleStep(10);
-        videoResHeightSpinBox->setValue(480);
-
-        horizontalLayout_5->addWidget(videoResHeightSpinBox);
-
-
-        verticalLayout_2->addLayout(horizontalLayout_5);
 
         horizontalLayout_2 = new QHBoxLayout();
         horizontalLayout_2->setSpacing(6);
@@ -265,9 +225,7 @@ public:
         TVMainWindow->setWindowTitle(QApplication::translate("TVMainWindow", "TVMainWindow", Q_NULLPTR));
         videoBox->setTitle(QApplication::translate("TVMainWindow", "Video configuration (h264)", Q_NULLPTR));
         label_7->setText(QApplication::translate("TVMainWindow", "Camera", Q_NULLPTR));
-        label_6->setText(QApplication::translate("TVMainWindow", "Frame rate", Q_NULLPTR));
-        label_4->setText(QApplication::translate("TVMainWindow", "Resolution (width \303\227 height)", Q_NULLPTR));
-        label_5->setText(QApplication::translate("TVMainWindow", "x", Q_NULLPTR));
+        label_6->setText(QApplication::translate("TVMainWindow", "Options", Q_NULLPTR));
         label->setText(QApplication::translate("TVMainWindow", "Quantizer [0-50] 0: lossless, 18: visually perfect, 21 is good", Q_NULLPTR));
         label_2->setText(QApplication::translate("TVMainWindow", "Speed [0-10] 0:none, 1-10 ultrafast to veryslow", Q_NULLPTR));
         soundBox->setTitle(QApplication::translate("TVMainWindow", "Audio configuration (FLAC)", Q_NULLPTR));
