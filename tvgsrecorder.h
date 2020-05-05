@@ -8,7 +8,7 @@ typedef struct Resolutions{
 	char hauteur[5];
 	char largeur[5];
 	char framerate[6];
-	
+
 	}Resolution;
 
 typedef struct Cameras{
@@ -21,10 +21,10 @@ typedef struct Cameras{
 class TVGSRecorder : public QThread
 {
 public:
-    
+
     TVGSRecorder(gchar* _filename);
     ~TVGSRecorder();
-    bool init_pipeline(QString videoFrameRate, QSize videoSize, char videoQuantizer, char videoSpeedPreset, char audioQuality);
+    bool init_pipeline(char* videoFrameRate, QSize videoSize, char videoQuantizer, char videoSpeedPreset, char audioQuality);
     void destroy_pipeline();
     void stop();
     void setDisplay(QWidget *widget);
@@ -45,7 +45,7 @@ private:
     void state_gst(GstMessage *msg);
     void error_gst(GstMessage *msg);
     void eos_gst();
-    
+
     static void newFrame_cb(GstPad *pad, GstPadProbeInfo *info, gpointer unused);
 };
 

@@ -4,7 +4,9 @@
 #include <QSize>
 #include <glib/gprintf.h>
 #include <gst/gst.h>
-
+#include <iostream>
+#include <cstring>
+#include <string>
 
 
 
@@ -117,9 +119,12 @@ QSettings settings(QApplication::applicationDirPath() + "/TimedVideo.ini", QSett
 
 }
 
+
 void TVMainWindow::on_startButton_clicked()
 {
   //Initialize the recording player if needed
+
+
  QSize videoSize(atoi(liste_cameras[ui->CameracomboBox->currentIndex()].options[ui->videoComboBox->currentIndex()].largeur),atoi(liste_cameras[ui->CameracomboBox->currentIndex()].options[ui->videoComboBox->currentIndex()].hauteur));
  if(recorder->init_pipeline(liste_cameras[ui->CameracomboBox->currentIndex()].options[ui->videoComboBox->currentIndex()].framerate, videoSize, ui->videoQuantizerSpinBox->value(), ui->videoSpeedSpinBox->value(), ui->audioQualitySpinBox->value()) == false)
      return;
