@@ -8,7 +8,8 @@ typedef struct Resolutions{
 	char hauteur[5];
 	char largeur[5];
 	char framerate[6];
-
+	int framerateUP;
+	int framerateDOWN;
 	}Resolution;
 
 typedef struct Cameras{

@@ -265,6 +265,8 @@ void TVMainWindow::camera_caps()
 					const GValue *GValue_framerate =gst_structure_get_value(Bout_de_Caps,"framerate");
 					int denominateur = gst_value_get_fraction_denominator(gst_value_list_get_value(GValue_framerate,compteur_framerates));
 					int numereteur = gst_value_get_fraction_numerator(gst_value_list_get_value(GValue_framerate,compteur_framerates));
+					liste_cameras[nbr_cameras].options[compteur_framerates2].framerateDOWN = denominateur;
+					liste_cameras[nbr_cameras].options[compteur_framerates2].framerateUP = numereteur;
 					sprintf(liste_cameras[nbr_cameras].options[compteur_framerates2].framerate,"%i/%i",numereteur,denominateur);
 					const GValue *GValue_largeur = gst_structure_get_value(Bout_de_Caps,"width");
 					sprintf(liste_cameras[nbr_cameras].options[compteur_framerates2].largeur,"%i",g_value_get_int(GValue_largeur));
@@ -277,6 +279,8 @@ void TVMainWindow::camera_caps()
 				const GValue *GValue_framerate =gst_structure_get_value(Bout_de_Caps,"framerate");
 				int denominateur = gst_value_get_fraction_denominator(GValue_framerate);
 				int numereteur = gst_value_get_fraction_numerator(GValue_framerate);
+				liste_cameras[nbr_cameras].options[compteur_framerates2].framerateDOWN = denominateur;
+				liste_cameras[nbr_cameras].options[compteur_framerates2].framerateUP = numereteur;
 				sprintf(liste_cameras[nbr_cameras].options[compteur_framerates2].framerate,"%i/%i",numereteur,denominateur);
 				const GValue *GValue_largeur = gst_structure_get_value(Bout_de_Caps,"width");
 				sprintf(liste_cameras[nbr_cameras].options[compteur_framerates2].largeur,"%i",g_value_get_int(GValue_largeur));
