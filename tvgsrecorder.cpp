@@ -47,7 +47,7 @@ TVGSRecorder::~TVGSRecorder()
 }
 
 
-bool TVGSRecorder::init_pipeline(char* videoFrameRate, QSize videoSize, char videoQuantizer, char videoSpeedPreset, char audioQuality)
+bool TVGSRecorder::init_pipeline(int videoFrameRateUP, int videoFrameRateDOWN, QSize videoSize, char videoQuantizer, char videoSpeedPreset, char audioQuality)
 {
 
     //Destroy the previous pipeline
@@ -109,7 +109,7 @@ bool TVGSRecorder::init_pipeline(char* videoFrameRate, QSize videoSize, char vid
     GstCaps *capsFilter = gst_caps_new_simple("video/x-raw",
                                         "width", G_TYPE_INT, videoSize.width(),
                                         "height", G_TYPE_INT, videoSize.height(),
-                                        "framerate", GST_TYPE_FRACTION, videoFrameRate, 1,
+                                        "framerate", GST_TYPE_FRACTION, videoFrameRateUP, videoFrameRateDOWN,
                                         NULL);
     if(!gst_element_link_filtered(video_src, tee, capsFilter))
     {

@@ -78,13 +78,14 @@ TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
     int findoptions;
 
     findcamera = ui->CameracomboBox->findText(cameracombo);
-    findoptions = ui->videoComboBox->findText(optionscombobox);
+
 
     if (findcamera == -1){
 
     }else{
     ui->CameracomboBox->setCurrentIndex(findcamera);
     UpdateCombo();
+      findoptions = ui->videoComboBox->findText(optionscombobox);
       if(findoptions == -1){
 
       }else{
@@ -126,7 +127,7 @@ void TVMainWindow::on_startButton_clicked()
 
 
  QSize videoSize(atoi(liste_cameras[ui->CameracomboBox->currentIndex()].options[ui->videoComboBox->currentIndex()].largeur),atoi(liste_cameras[ui->CameracomboBox->currentIndex()].options[ui->videoComboBox->currentIndex()].hauteur));
- if(recorder->init_pipeline(liste_cameras[ui->CameracomboBox->currentIndex()].options[ui->videoComboBox->currentIndex()].framerate, videoSize, ui->videoQuantizerSpinBox->value(), ui->videoSpeedSpinBox->value(), ui->audioQualitySpinBox->value()) == false)
+ if(recorder->init_pipeline(liste_cameras[ui->CameracomboBox->currentIndex()].options[ui->videoComboBox->currentIndex()].framerateUP,liste_cameras[ui->CameracomboBox->currentIndex()].options[ui->videoComboBox->currentIndex()].framerateDOWN, videoSize, ui->videoQuantizerSpinBox->value(), ui->videoSpeedSpinBox->value(), ui->audioQualitySpinBox->value()) == false)
      return;
 
     //Associate recorder video output the video widget (should be done each time, why ?)
