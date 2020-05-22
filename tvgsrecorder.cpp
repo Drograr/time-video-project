@@ -98,7 +98,7 @@ bool TVGSRecorder::init_pipeline(int videoFrameRateUP, int videoFrameRateDOWN, Q
 		}
 	if(strcmp(OS_TOKEN,"linux") == 0){
 		g_object_set(video_src, "device", path, NULL);
-		printf("aaaaaaaaaaaaaa\n");
+
 		}	
 	
     /* Configure sound encoding */
