@@ -9,10 +9,12 @@
 
 //Define the GST elements which depends on the platform
 #ifdef Q_OS_WIN32
+	#define OS_TOKEN "windows"
     #define VIDEO_SRC "ksvideosrc"
     #define SOUND_SRC "directsoundsrc"
     #define VIDEO_SINK "d3dvideosink"
 #elif defined(Q_OS_LINUX)
+	#define OS_TOKEN "linux"
     #define VIDEO_SRC "v4l2src"
     #define SOUND_SRC "alsasrc"
     #define VIDEO_SINK "xvimagesink"
@@ -47,9 +49,9 @@ TVGSRecorder::~TVGSRecorder()
 }
 
 
-bool TVGSRecorder::init_pipeline(int videoFrameRateUP, int videoFrameRateDOWN, QSize videoSize, char videoQuantizer, char videoSpeedPreset, char audioQuality)
+bool TVGSRecorder::init_pipeline(int videoFrameRateUP, int videoFrameRateDOWN, QSize videoSize, char videoQuantizer, char videoSpeedPreset, char audioQuality,char *path)
 {
-
+	printf("%s",path);
     //Destroy the previous pipeline
     destroy_pipeline();
 
@@ -89,7 +91,16 @@ bool TVGSRecorder::init_pipeline(int videoFrameRateUP, int videoFrameRateDOWN, Q
         "quantizer", videoQuantizer,
         "speed-preset",  videoSpeedPreset,
         NULL);
-
+	
+	//configure camera source depending on os
+	if(strcmp(OS_TOKEN,"windows") == 0){
+		g_object_set(video_src, "device-path", path, NULL);
+		}
+	if(strcmp(OS_TOKEN,"linux") == 0){
+		g_object_set(video_src, "device", path, NULL);
+		printf("aaaaaaaaaaaaaa\n");
+		}	
+	
     /* Configure sound encoding */
     g_object_set(sound_enc, "quality", audioQuality, NULL);
 

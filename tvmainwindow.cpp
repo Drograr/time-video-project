@@ -127,7 +127,7 @@ void TVMainWindow::on_startButton_clicked()
 
 
  QSize videoSize(atoi(liste_cameras[ui->CameracomboBox->currentIndex()].options[ui->videoComboBox->currentIndex()].largeur),atoi(liste_cameras[ui->CameracomboBox->currentIndex()].options[ui->videoComboBox->currentIndex()].hauteur));
- if(recorder->init_pipeline(liste_cameras[ui->CameracomboBox->currentIndex()].options[ui->videoComboBox->currentIndex()].framerateUP,liste_cameras[ui->CameracomboBox->currentIndex()].options[ui->videoComboBox->currentIndex()].framerateDOWN, videoSize, ui->videoQuantizerSpinBox->value(), ui->videoSpeedSpinBox->value(), ui->audioQualitySpinBox->value()) == false)
+ if(recorder->init_pipeline(liste_cameras[ui->CameracomboBox->currentIndex()].options[ui->videoComboBox->currentIndex()].framerateUP,liste_cameras[ui->CameracomboBox->currentIndex()].options[ui->videoComboBox->currentIndex()].framerateDOWN, videoSize, ui->videoQuantizerSpinBox->value(), ui->videoSpeedSpinBox->value(), ui->audioQualitySpinBox->value(),liste_cameras[ui->CameracomboBox->currentIndex()].path) == false)
      return;
 
     //Associate recorder video output the video widget (should be done each time, why ?)

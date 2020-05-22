@@ -25,7 +25,7 @@ public:
 
     TVGSRecorder(gchar* _filename);
     ~TVGSRecorder();
-    bool init_pipeline(int videoFrameRateUP, int videoFrameRateDOWN, QSize videoSize, char videoQuantizer, char videoSpeedPreset, char audioQuality);
+    bool init_pipeline(int videoFrameRateUP, int videoFrameRateDOWN, QSize videoSize, char videoQuantizer, char videoSpeedPreset, char audioQuality,char *path);
     void destroy_pipeline();
     void stop();
     void setDisplay(QWidget *widget);
