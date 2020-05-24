@@ -14,7 +14,7 @@ TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
     QMainWindow(parent),
     ui(new Ui::TVMainWindow)
 
-{	camera_caps();
+{	camera_caps(); // appel de camera_caps afin de créer les structure utilisant les fonction Gstreamer
     ui->setupUi(this);
 
     recorder = new TVGSRecorder(filename);
@@ -23,10 +23,10 @@ TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
     connect(recorder, SIGNAL(started()), this, SLOT(cb_recorder_started()));
     connect(recorder, SIGNAL(finished()), this, SLOT(cb_recorder_finished()));
 
-  //add items into the combobox
 
 
 
+//création d'une Stringlist contenant toute les options des Cameras
 	QStringList Camera;
 	int c;
 
@@ -43,9 +43,7 @@ TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
 
 				for (v = 0;v < liste_cameras[0].nbr_resolution ; v++){
 
-
-
-
+//utilisation de la structure créer par camera_caps et introduction de leur information dans les comboboxs
 					QString fullresolution ( "largeur :");
 					fullresolution.append( liste_cameras[0].options[v].largeur);
 					fullresolution.append( ", hauteur :");
@@ -56,12 +54,12 @@ TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
 
 			     video << fullresolution;
 					}
-	       ui->videoComboBox->addItems(video);
+	       ui->videoComboBox->addItems(video); //add Sringlist items into the combobox
 
 
 
 
-
+  // connect les 2 combobox ensemble de maniére a que a chaque selection de camera, connect envoie un signal qui fait appel a la fonction UpdateCombo
 	 connect(	ui->CameracomboBox,SIGNAL(currentTextChanged(const QString &)),this,SLOT(UpdateCombo()));
 
 
@@ -74,18 +72,19 @@ TVMainWindow::TVMainWindow(QWidget *parent, char* filename) :
     int audioQualitySpinBox = settings.value("audio/quality", 2).toInt();
     QString optionscombobox = settings.value("Options").toString();
     QString cameracombo = settings.value("camera").toString();
+    // intégrales contenant les index trouvés par findText
     int findcamera;
     int findoptions;
 
-    findcamera = ui->CameracomboBox->findText(cameracombo);
+    findcamera = ui->CameracomboBox->findText(cameracombo); //recherche le texte de la derniére sauvegarde et retourne l'index si trouvé
 
 
-    if (findcamera == -1){
+    if (findcamera == -1){ // si il ne trouve rien retourne zero
 
     }else{
-    ui->CameracomboBox->setCurrentIndex(findcamera);
-    UpdateCombo();
-      findoptions = ui->videoComboBox->findText(optionscombobox);
+    ui->CameracomboBox->setCurrentIndex(findcamera); //set l'option afficher a l'iffichage au texte trouver par findtext
+    UpdateCombo();//met a jour la seconde combobox
+      findoptions = ui->videoComboBox->findText(optionscombobox);// répéte le procesus pour la seconde Combobox
       if(findoptions == -1){
 
       }else{
@@ -161,7 +160,7 @@ void TVMainWindow::closeEvent (QCloseEvent *event)
 }
 
 
-void TVMainWindow::UpdateCombo(){
+void TVMainWindow::UpdateCombo(){ //fonction qui change les items du second combobox en fonction de l'index du premmier combobox.
 ui->videoComboBox->clear();
 QStringList video;
 int v;
