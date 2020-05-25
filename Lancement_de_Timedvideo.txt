@@ -1,5 +1,5 @@
 Linux :
-Pour lancer le programme assurez vous d'abbord d'avoir installé Qt et Gstreamer puis utiliser les commandes:
+Pour lancer le programme assurez vous d'abord d'avoir installé Qt et Gstreamer puis utilisez les commandes:
 apt-get install libgstreamer1.0-0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-doc gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio
 
 apt-get install libgstreamer-plugins-base1.0-dev
@@ -23,3 +23,6 @@ Windows:
 Pour lancer le programme il faut avoir installé QT et Gstreamer ainsi qu'un compilateur msvc 64-bit compatible, ensuite il faut build depuis l'interface de projet QT et exécuter
 
 assurez vous que la varible path soit configurée pour que le compilateur de votre choix puisse utiliser gst.h
+
+Vous aurez ensuite accès à une UI ou vous pourraz configurer le matériel d'enregistreement et choisir la caméra, finalemet vous pouvez utiliser les boutons stop recording et start recording 
+pour stopper/lancer l'enregistrement
