@@ -33,7 +33,7 @@ public:
 
 private:
     GstElement *rec_pipeline;
-    GstElement *video_src,*tee, *queue, *sound_src, *video_enc, *sound_enc, *video_conv, *mux, *file_sink, *video_sink;
+    GstElement *video_src,*tee, *queue, *sound_src, *video_enc, *sound_enc, *video_conv, *video_conv2, *mux, *file_sink, *video_sink;
     GstBus *bus;
     gchar *filename;
     GMainLoop *mainLoop;

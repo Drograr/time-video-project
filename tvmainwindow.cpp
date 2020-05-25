@@ -179,7 +179,7 @@ int v;
 		}
 	 ui->videoComboBox->addItems(video);
 }
-
+//fonction statique tirée de gst-device-inspect qui sert à itérer sur les different device que gstreamer detecte
 static gboolean my_bus_func(GstBus * bus, GstMessage * message, gpointer user_data)
    {
       GstDevice *device;
@@ -206,7 +206,7 @@ static gboolean my_bus_func(GstBus * bus, GstMessage * message, gpointer user_da
 
       return G_SOURCE_CONTINUE;
    }
-
+//fonction qui va creer un monitor qui ne regarde que les source vidép qui émetent en x-raw, sert à trouver et filtrer les devices connectés.
    GstDeviceMonitor *setup_raw_video_source_device_monitor (void) {
       GstDeviceMonitor *monitor;
       GstBus *bus;
@@ -226,7 +226,7 @@ static gboolean my_bus_func(GstBus * bus, GstMessage * message, gpointer user_da
 
       return monitor;
    }
-
+// fonction qui quand appellé va remplir l'attribut liste-camera avec les charcteristique des differentes cameras connectée 
 void TVMainWindow::camera_caps()
 {
 	unsigned int compteur_framerates,compteur_inspecteur1;
@@ -235,7 +235,7 @@ void TVMainWindow::camera_caps()
 	GstDeviceMonitor *monitor;
 	nbr_cameras = 0;
 
-
+	// on crée un monitor qui va recuperer les device
 	monitor = setup_raw_video_source_device_monitor();
 	GList *list_gstdevice = gst_device_monitor_get_devices(monitor);
 	nbr_cameras = 0;
@@ -245,20 +245,25 @@ void TVMainWindow::camera_caps()
 
 
 	while(list_gstdevice != NULL){
+		// on recupère le nom de la source vidéo
 		gchar *nom_camera_monitorer = gst_device_get_display_name((GstDevice*)list_gstdevice->data);
-		;
+		
 		strcpy(liste_cameras[nbr_cameras].nom,(char *)nom_camera_monitorer);
-
+		// on récupère  son path
 		GstStructure *test_property = gst_device_get_properties((GstDevice*)list_gstdevice->data);
 		gchar *test_property_char = gst_structure_to_string(test_property);
 
 		strcpy(liste_cameras[nbr_cameras].path,gst_structure_get_string(test_property,"device.path") );
+		// on prend ensuite ses capabilités dans un gst-caps qu'on va traiter plus loins
 		GstCaps *Caps_current = gst_device_get_caps((GstDevice*)list_gstdevice->data);
 		guint size_caps_current = gst_caps_get_size(Caps_current);
 		compteur_framerates2 = 0;
+		
+		// on va ensuite iterer sur chaque combinaison de hauteur largeur
 		for(compteur_inspecteur1 = 0; compteur_inspecteur1 < size_caps_current;compteur_inspecteur1 ++){
 			GstStructure *Bout_de_Caps = gst_caps_get_structure(Caps_current,compteur_inspecteur1);
 			GType type_bout_de_caps  = gst_structure_get_field_type(Bout_de_Caps,"framerate");
+			// si plusieurs framerate pour un meme combo largeur hauteur
 			if(strcmp("GstValueList",g_type_name(type_bout_de_caps)) == 0){
 				guint taille_liste_framerate = gst_value_list_get_size(gst_structure_get_value(Bout_de_Caps,"framerate"));
 				for(compteur_framerates = 0;compteur_framerates < taille_liste_framerate;compteur_framerates++){
@@ -275,6 +280,7 @@ void TVMainWindow::camera_caps()
 					compteur_framerates2++;
 					}
 				}
+			//sinon on le prend directement
 			if(strcmp("GstFraction",g_type_name(type_bout_de_caps)) == 0){
 				const GValue *GValue_framerate =gst_structure_get_value(Bout_de_Caps,"framerate");
 				int denominateur = gst_value_get_fraction_denominator(GValue_framerate);
@@ -312,5 +318,5 @@ void TVMainWindow::camera_caps()
 	}
 */
 
-	printf("\n%i\n",nbr_cameras);
+
 }

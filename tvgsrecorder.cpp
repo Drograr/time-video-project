@@ -67,6 +67,7 @@ bool TVGSRecorder::init_pipeline(int videoFrameRateUP, int videoFrameRateDOWN, Q
     // Video encoder for h264 using x264 encoder
     video_enc = create_gst_element_err("x264enc", "video_enc");
     // Helps to improve video source compatibility with encoder
+    video_conv2 = create_gst_element_err("videoconvert", "video_conv2");
     video_conv = create_gst_element_err("videoconvert", "video_conv");
     // Encode sound in FLAC lossless
     sound_enc = create_gst_element_err("flacenc", "sound_enc");
@@ -82,7 +83,7 @@ bool TVGSRecorder::init_pipeline(int videoFrameRateUP, int videoFrameRateDOWN, Q
 
     /* If any element failed to initilizecurrState == GST_STATE_PLAYING return false */
     if (!rec_pipeline || !queue || !tee || !video_src || !sound_src || !video_enc
-            || !video_conv || !sound_enc || !mux   || !file_sink || !video_sink)
+            || !video_conv || !video_conv2 || !sound_enc || !mux   || !file_sink || !video_sink)
         return false;
 
     /* configure video encoder */
@@ -113,7 +114,7 @@ bool TVGSRecorder::init_pipeline(int videoFrameRateUP, int videoFrameRateDOWN, Q
     gst_object_unref(pad);
 
     /* Create the bin and continue by building pipeline */
-    gst_bin_add_many(GST_BIN(rec_pipeline), video_src, tee, queue, sound_src, video_enc, mux,
+    gst_bin_add_many(GST_BIN(rec_pipeline), video_src, tee, queue, sound_src, video_conv2 ,video_enc, mux,
                      video_conv, file_sink, video_sink, sound_enc, NULL);
 
     /* Link the video source with other components by filtering the resolution and framerate */
@@ -135,7 +136,7 @@ bool TVGSRecorder::init_pipeline(int videoFrameRateUP, int videoFrameRateDOWN, Q
      * - one with the video encoding / recording
      * - the other with the video display
      * - the last for sound recording */
-    if(!gst_element_link_many(tee, queue, video_sink, NULL) || !gst_element_link_many(tee, video_conv, video_enc, mux, file_sink, NULL)
+    if(!gst_element_link_many(tee, video_conv2, queue, video_sink, NULL) || !gst_element_link_many(tee, video_conv, video_enc, mux, file_sink, NULL)
         || !gst_element_link_many(sound_src, sound_enc, mux, NULL))
     {
         g_printerr("Elements could not be linked in rec pipeline.\n");
